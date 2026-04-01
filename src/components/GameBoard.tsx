@@ -198,10 +198,10 @@ export default function GameBoard({ game, user, isPlayer1 }: Props) {
       sounds.win();
     }
     
-    if (isLying) {
+    if (isLying && !isWin) {
       const currentLies = (game.lies[user.userId] || 0) + 1;
       updateData[`lies.${user.userId}`] = currentLies;
-      // Skip opponent's next turn as penalty
+      // Penalty: skip opponent's next turn (keep turn with answering player)
       updateData.currentTurn = user.userId;
     }
     

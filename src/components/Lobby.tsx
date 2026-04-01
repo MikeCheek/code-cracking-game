@@ -106,8 +106,11 @@ export default function Lobby({ user }: Props) {
 
   const copyInviteLink = (gameId: string) => {
     const link = `${window.location.origin}/game/${gameId}`;
-    navigator.clipboard.writeText(link);
-    setInviteLink(link);
+    navigator.clipboard.writeText(link).then(() => {
+      setInviteLink(link);
+    }).catch(() => {
+      setInviteLink(link); // Still show the link even if copy fails
+    });
     sounds.click();
   };
 

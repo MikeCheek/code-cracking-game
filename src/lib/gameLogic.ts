@@ -97,6 +97,9 @@ export function generateUserId(): string {
 }
 
 export function generateGameId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
+  }
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 }
 
