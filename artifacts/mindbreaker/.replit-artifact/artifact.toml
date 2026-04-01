@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "MindBreaker"
+title = "CodeCracker"
 version = "1.0.0"
 id = "artifacts/mindbreaker"
 router = "path"

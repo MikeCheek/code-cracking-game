@@ -15,8 +15,8 @@ import { sounds } from "@/lib/sounds";
 
 const queryClient = new QueryClient();
 
-const PLAYER_KEY = "mindbreaker_player";
-const GAME_KEY = "mindbreaker_current_game";
+const PLAYER_KEY = "codecracker_player";
+const GAME_KEY = "codecracker_current_game";
 
 function AppContent() {
   const [player, setPlayer] = useState<Player | null>(() => {

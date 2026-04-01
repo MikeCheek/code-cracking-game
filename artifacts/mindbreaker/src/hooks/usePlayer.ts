@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Player, PREDEFINED_AVATARS } from "@/types/game";
 
-const STORAGE_KEY = "mindbreaker_player";
+const STORAGE_KEY = "codecracker_player";
 
 function randomAvatar(): string {
   return PREDEFINED_AVATARS[Math.floor(Math.random() * PREDEFINED_AVATARS.length)];

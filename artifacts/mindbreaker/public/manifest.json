@@ -1,6 +1,6 @@
 {
-  "name": "MindBreaker",
-  "short_name": "MindBreaker",
+  "name": "CodeCracker",
+  "short_name": "CodeCracker",
   "description": "Real-time multiplayer code-cracking game",
   "start_url": "/",
   "display": "standalone",

@@ -91,7 +91,7 @@ export default function LobbyPage({ player, onCreateGame, onJoinGame, onChangePr
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-black text-white">
-              Mind<span className="text-purple-400">Breaker</span>
+              Code<span className="text-purple-400">Cracker</span>
             </h1>
             <p className="text-purple-300 text-sm">Game Lobby</p>
           </div>

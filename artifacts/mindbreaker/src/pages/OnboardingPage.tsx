@@ -53,7 +53,7 @@ export default function OnboardingPage({ onComplete }: Props) {
             🧠
           </motion.div>
           <h1 className="text-5xl font-black text-white tracking-tight">
-            Mind<span className="text-purple-400">Breaker</span>
+            Code<span className="text-purple-400">Cracker</span>
           </h1>
           <p className="text-purple-300 mt-2 text-lg">
             The ultimate multiplayer code-cracking game

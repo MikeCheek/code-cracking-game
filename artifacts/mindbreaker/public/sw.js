@@ -1,4 +1,4 @@
-const CACHE_NAME = "mindbreaker-v1";
+const CACHE_NAME = "codecracker-v1";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
