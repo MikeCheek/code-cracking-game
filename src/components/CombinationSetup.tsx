@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Game } from '@/types/game';
 import { sounds } from '@/lib/sounds';
@@ -49,16 +49,20 @@ export default function CombinationSetup({ game, isPlayer1 }: Props) {
     
     const playerKey = isPlayer1 ? 'player1' : 'player2';
     const gameRef = doc(db, 'games', game.id);
-    await updateDoc(gameRef, {
-      [`${playerKey}.combination`]: combination,
-      [`${playerKey}.ready`]: true,
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(gameRef);
+      if (!snap.exists()) return;
+      const data = snap.data() as Game;
+      const otherReady = isPlayer1 ? data.player2?.ready : data.player1.ready;
+      const update: Record<string, unknown> = {
+        [`${playerKey}.combination`]: combination,
+        [`${playerKey}.ready`]: true,
+      };
+      if (otherReady) {
+        update.status = 'playing';
+      }
+      transaction.update(gameRef, update);
     });
-
-    // Check if both ready
-    const otherReady = isPlayer1 ? game.player2?.ready : game.player1.ready;
-    if (otherReady) {
-      await updateDoc(gameRef, { status: 'playing' });
-    }
   };
 
   const opponent = isPlayer1 ? game.player2 : game.player1;

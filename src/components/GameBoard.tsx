@@ -169,6 +169,7 @@ export default function GameBoard({ game, user, isPlayer1 }: Props) {
     );
     
     if (guessIndex === -1) {
+      setError('Could not find the guess to answer. Please refresh.');
       setSubmitting(false);
       return;
     }

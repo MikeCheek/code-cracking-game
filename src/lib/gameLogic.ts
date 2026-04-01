@@ -89,18 +89,23 @@ export function determineRPSWinner(p1: string, p2: string): 'player1' | 'player2
   return 'player2';
 }
 
+function secureRandomHex(length: number): string {
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export function generateUserId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  // Fallback using crypto.getRandomValues for secure random bytes
+  const hex = secureRandomHex(16);
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 
 export function generateGameId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-  }
-  return Math.random().toString(36).substring(2, 10).toUpperCase();
+  return secureRandomHex(4).toUpperCase();
 }
 
 export const AVATARS = ['🦊', '🐼', '🦁', '🐸', '🤖', '👾', '🦄', '🐲', '🎃', '👻', '🦋', '🐙'];
