@@ -42,12 +42,15 @@ export function useGame(gameId: string | null, playerId: string | null) {
   const createGame = useCallback(async (host: Player, settings: GameSettings): Promise<string> => {
     const id = push(ref(db, "games")).key!;
     const inviteCode = generateInviteCode();
+    const cleanSettings = { ...settings };
+    if (!cleanSettings.password) delete cleanSettings.password;
+
     const newGame: Game = {
       id,
       hostId: host.id,
       player1: host,
       phase: "setup",
-      settings,
+      settings: cleanSettings,
       guesses: [],
       player1CodeSet: false,
       player2CodeSet: false,
