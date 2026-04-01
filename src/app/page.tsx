@@ -6,12 +6,23 @@ import Lobby from '@/components/Lobby';
 import { User } from '@/types/game';
 import { isFirebaseConfigured } from '@/lib/firebase';
 
+function isValidUser(obj: unknown): obj is User {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof (obj as Record<string, unknown>).userId === 'string' &&
+    typeof (obj as Record<string, unknown>).username === 'string' &&
+    typeof (obj as Record<string, unknown>).avatar === 'string'
+  );
+}
+
 function loadUserFromStorage(): User | null {
   if (typeof window === 'undefined') return null;
   const stored = localStorage.getItem('codecracker_user');
   if (!stored) return null;
   try {
-    return JSON.parse(stored) as User;
+    const parsed = JSON.parse(stored);
+    return isValidUser(parsed) ? parsed : null;
   } catch {
     return null;
   }

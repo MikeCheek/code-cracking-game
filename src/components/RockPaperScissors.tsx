@@ -57,13 +57,13 @@ export default function RockPaperScissors({ game, user, isPlayer1 }: Props) {
       
       if (isPlayer1) {
         // Only player1 updates the result to avoid race condition
-        setTimeout(async () => {
+        setTimeout(() => {
           const firstPlayer = winner === 'tie' ? game.player1.userId : winner;
-          await updateDoc(gameRef, {
+          updateDoc(gameRef, {
             'rps.winner': winner,
             status: 'setup',
             currentTurn: firstPlayer,
-          });
+          }).catch(err => console.error('Failed to update RPS result:', err));
         }, 2000);
       }
     }
