@@ -3,22 +3,18 @@
 import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Game, User } from '@/types/game';
+import { Game } from '@/types/game';
 import { sounds } from '@/lib/sounds';
 
 interface Props {
   game: Game;
-  user: User;
   isPlayer1: boolean;
 }
 
-export default function CombinationSetup({ game, user, isPlayer1 }: Props) {
+export default function CombinationSetup({ game, isPlayer1 }: Props) {
   const [combination, setCombination] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState('');
-
-  // Suppress unused variable warning
-  void user;
 
   const playerData = isPlayer1 ? game.player1 : game.player2!;
   const isReady = playerData.ready;

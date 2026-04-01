@@ -116,7 +116,7 @@ export default function GameRoom({ gameId, user }: Props) {
   }
 
   if (game.status === 'setup') {
-    return <CombinationSetup game={game} user={user} isPlayer1={isPlayer1} />;
+    return <CombinationSetup game={game} isPlayer1={isPlayer1} />;
   }
 
   return <GameBoard game={game} user={user} isPlayer1={isPlayer1} />;

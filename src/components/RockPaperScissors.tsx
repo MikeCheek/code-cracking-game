@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Game, RPSChoice, User } from '@/types/game';
@@ -25,8 +25,6 @@ const RPS_BEATS: Record<RPSChoice, RPSChoice> = {
 };
 
 export default function RockPaperScissors({ game, user, isPlayer1 }: Props) {
-  const [myChoice, setMyChoice] = useState<RPSChoice | null>(null);
-  
   const playerKey = isPlayer1 ? 'player1Choice' : 'player2Choice';
   const opponentKey = isPlayer1 ? 'player2Choice' : 'player1Choice';
   const myStoredChoice = game.rps[playerKey];
@@ -35,8 +33,6 @@ export default function RockPaperScissors({ game, user, isPlayer1 }: Props) {
   const makeChoice = async (choice: RPSChoice) => {
     if (myStoredChoice) return;
     sounds.rps();
-    setMyChoice(choice);
-    
     const gameRef = doc(db, 'games', game.id);
     const updateData: Record<string, RPSChoice> = {};
     updateData[`rps.${playerKey}`] = choice;
@@ -74,9 +70,6 @@ export default function RockPaperScissors({ game, user, isPlayer1 }: Props) {
   }, [game.rps.player1Choice, game.rps.player2Choice, game.rps.winner, game.player1.userId, game.player2, isPlayer1, game.id]);
 
   const opponent = isPlayer1 ? game.player2 : game.player1;
-
-  // Suppress unused variable warning - myChoice is used for optimistic UI
-  void myChoice;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-950 via-indigo-950 to-black flex items-center justify-center p-4">
