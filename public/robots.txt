@@ -16,4 +16,4 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemaps
-Sitemap: https://code-cracking.vercel.app/sitemap.xml
+Sitemap: https://codecracking.vercel.app/sitemap.xml
