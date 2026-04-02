@@ -54,8 +54,8 @@ export default defineConfig({
       },
       manifest: {
         id: '/',
-        name: 'Mindbreaker Arena',
-        short_name: 'Mindbreaker',
+        name: 'Code Cracking',
+        short_name: 'Code Cracking',
         description: 'Realtime multiplayer digit code cracking game.',
         lang: 'en',
         categories: ['games', 'entertainment'],

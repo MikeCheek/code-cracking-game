@@ -1,4 +1,4 @@
-# Mindbreaker Arena
+# Code Cracking
 
 Realtime multiplayer code-cracking game built with:
 - React + Vite + TypeScript

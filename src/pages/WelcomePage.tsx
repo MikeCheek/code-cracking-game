@@ -36,7 +36,7 @@ export function WelcomePage({
           <div className="w-full max-w-md rounded-3xl border border-fuchsia-200 bg-white p-6 shadow-2xl">
             <h3 className="text-2xl font-black text-fuchsia-950">Enable Audio?</h3>
             <p className="mt-2 text-sm text-fuchsia-800/90">
-              Mindbreaker has background music and sound effects to enhance gameplay. Would you like them enabled?
+              Code Cracking has background music and sound effects to enhance gameplay. Would you like them enabled?
             </p>
             <div className="mt-5 flex gap-3">
               <button
@@ -68,7 +68,7 @@ export function WelcomePage({
 
       <section className="grid gap-6 md:grid-cols-[2fr_1fr]">
       <article className="rounded-3xl border border-violet-200 bg-white p-6 shadow-xl">
-        <h2 className="text-2xl font-black text-fuchsia-900">Welcome To Mindbreaker</h2>
+        <h2 className="text-2xl font-black text-fuchsia-900">Welcome To Code Cracking</h2>
         <p className="mt-2 text-sm text-fuchsia-800/80">
           Confirm your player info, change it if you want, then enter the game rooms.
         </p>

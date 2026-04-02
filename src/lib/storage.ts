@@ -1,8 +1,12 @@
 import type { AudioSettings, UserProfile } from '../types'
 
-const USER_KEY = 'mindbreaker-user-v1'
-const AUDIO_KEY = 'mindbreaker-audio-v1'
-const AUDIO_CONSENT_KEY = 'mindbreaker-audio-consent-v1'
+const USER_KEY = 'code-cracking-user-v1'
+const AUDIO_KEY = 'code-cracking-audio-v1'
+const AUDIO_CONSENT_KEY = 'code-cracking-audio-consent-v1'
+
+const LEGACY_USER_KEY = 'mindbreaker-user-v1'
+const LEGACY_AUDIO_KEY = 'mindbreaker-audio-v1'
+const LEGACY_AUDIO_CONSENT_KEY = 'mindbreaker-audio-consent-v1'
 
 const defaultAudioSettings: AudioSettings = {
   musicEnabled: false,
@@ -13,7 +17,7 @@ const defaultAudioSettings: AudioSettings = {
 }
 
 export function loadUser(): UserProfile | null {
-  const raw = localStorage.getItem(USER_KEY)
+  const raw = localStorage.getItem(USER_KEY) ?? localStorage.getItem(LEGACY_USER_KEY)
   if (!raw) return null
 
   try {
@@ -48,7 +52,7 @@ function clampVolume(value: number): number {
 }
 
 export function loadAudioSettings(): AudioSettings {
-  const raw = localStorage.getItem(AUDIO_KEY)
+  const raw = localStorage.getItem(AUDIO_KEY) ?? localStorage.getItem(LEGACY_AUDIO_KEY)
   if (!raw) return defaultAudioSettings
 
   try {
@@ -74,7 +78,7 @@ export function saveAudioSettings(settings: AudioSettings): void {
 }
 
 export function hasAudioConsent(): boolean {
-  return localStorage.getItem(AUDIO_CONSENT_KEY) === 'true'
+  return (localStorage.getItem(AUDIO_CONSENT_KEY) ?? localStorage.getItem(LEGACY_AUDIO_CONSENT_KEY)) === 'true'
 }
 
 export function setAudioConsent(consented: boolean): void {

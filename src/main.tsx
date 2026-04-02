@@ -9,7 +9,7 @@ import { registerSW } from 'virtual:pwa-register'
 const updateSW = registerSW({
   immediate: true,
   onOfflineReady() {
-    toast.success('Mindbreaker is ready for offline play.')
+    toast.success('Code Cracking is ready for offline play.')
   },
   onNeedRefresh() {
     toast(
