@@ -1,0 +1,19 @@
+# SEO Robots Configuration
+User-agent: *
+Allow: /
+Disallow: 
+
+# Crawl-delay for politeness
+Crawl-delay: 1
+
+# Specific rules for popular search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0.5
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://code-cracking.vercel.app/sitemap.xml
