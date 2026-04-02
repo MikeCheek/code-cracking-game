@@ -971,6 +971,16 @@ function App() {
         </Routes>
       </div>
 
+      <a
+        href="https://www.paypal.me/micheleskere"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-5 left-5 z-40 rounded-full border border-amber-300 bg-white/95 px-4 py-3 text-sm font-bold text-amber-900 shadow-xl backdrop-blur hover:bg-amber-50 transition-all duration-200"
+        title="Buy me a coffee - Support with PayPal"
+      >
+        ☕ Buy me a coffee
+      </a>
+
       <button
         type="button"
         onClick={() => setShowSettingsPanel((open) => !open)}

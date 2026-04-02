@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/:path((?!favicon|public|manifest|assets|icon)[^\\.]*)",
+      "destination": "/index.html"
+    }
+  ]
+}
