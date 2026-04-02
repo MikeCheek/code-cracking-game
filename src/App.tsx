@@ -770,7 +770,7 @@ function App() {
       />
 
       <div className="mx-auto max-w-6xl">
-        <header className={`glass-panel-strong mb-6 rounded-[2rem] ${isWelcomeRoute ? 'p-5 md:p-7' : 'p-4 md:p-5'} `}>
+        <header className={`glass-panel-strong relative z-[999] mb-6 rounded-[2rem] ${isWelcomeRoute ? 'p-5 md:p-7' : 'p-4 md:p-5'} `}>
           {isWelcomeRoute ? (
             <>
               <div className="flex items-center justify-between gap-3">
@@ -787,7 +787,7 @@ function App() {
                     </button>
 
                     {showUserMenu && (
-                      <div className="glass-panel-strong absolute right-0 top-10 z-20 w-44 rounded-xl p-2">
+                      <div className="glass-panel-strong absolute right-0 top-10 z-[999] w-44 rounded-xl p-2">
                         <button
                           type="button"
                           onClick={() => {
@@ -842,7 +842,7 @@ function App() {
                   </button>
 
                   {showUserMenu && (
-                    <div className="glass-panel-strong absolute right-0 top-10 z-20 w-44 rounded-xl p-2">
+                    <div className="glass-panel-strong absolute right-0 top-10 z-[999] w-44 rounded-xl p-2">
                       <button
                         type="button"
                         onClick={() => {

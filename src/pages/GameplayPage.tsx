@@ -219,6 +219,7 @@ export function GameplayPage({
   const [secretSelectedIndex, setSecretSelectedIndex] = useState<number | null>(null)
   const [guessSelectedIndex, setGuessSelectedIndex] = useState<number | null>(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showAllGuesses, setShowAllGuesses] = useState(false)
 
   const showPenaltyCounters = room.status === 'playing' || room.status === 'finished'
   const isPlaying = room.status === 'playing'
@@ -228,6 +229,10 @@ export function GameplayPage({
     room.pendingGuess && mySecret
       ? getGuessCellHints(mySecret, room.pendingGuess.guess, room.settings.codeLength)
       : undefined
+  const activeViewerId = myProfile?.id ?? user.id
+  const visibleHistory = showAllGuesses
+    ? sortedHistory
+    : sortedHistory.filter((item) => item.fromPlayerId === activeViewerId)
 
   const handleSecretCellClick = (index: number) => {
     setSecretSelectedIndex(index)
@@ -517,8 +522,27 @@ export function GameplayPage({
             </div>
           )}
 
-          <div className="mt-5 space-y-2 md:hidden">
-            {sortedHistory.map((item) => (
+          <div className="mt-5 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
+              {showAllGuesses ? 'All Guesses' : 'My Guesses'} ({visibleHistory.length})
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowAllGuesses((current) => !current)}
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+            >
+              {showAllGuesses ? 'Show Mine Only' : 'Show Opponent Too'}
+            </button>
+          </div>
+
+          {visibleHistory.length === 0 && (
+            <div className="rounded-xl border border-white/8 bg-slate-950/45 px-3 py-3 text-sm text-slate-300">
+              No guesses yet.
+            </div>
+          )}
+
+          <div className="mt-2 space-y-2 md:hidden">
+            {visibleHistory.map((item) => (
               <article key={item.id} className="rounded-xl border border-white/8 bg-slate-950/45 p-3 text-sm text-slate-100">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold">Turn {item.turnNumber}</span>
@@ -532,7 +556,7 @@ export function GameplayPage({
             ))}
           </div>
 
-          <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-white/8 bg-slate-950/45 md:block">
+          <div className="mt-2 hidden overflow-x-auto rounded-2xl border border-white/8 bg-slate-950/45 md:block">
             <table className="min-w-full border-collapse text-sm">
               <thead>
                 <tr className="text-left text-slate-200">
@@ -545,7 +569,7 @@ export function GameplayPage({
                 </tr>
               </thead>
               <tbody>
-                {sortedHistory.map((item) => (
+                {visibleHistory.map((item) => (
                   <tr key={item.id} className="border-t border-white/8 text-slate-100">
                     <td className="px-3 py-2.5">{item.turnNumber}</td>
                     <td className="px-3 py-2.5">{room.profiles[item.fromPlayerId]?.username}</td>
