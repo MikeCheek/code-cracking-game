@@ -82,15 +82,19 @@ export async function joinRoom(roomId: string, user: UserProfile, password: stri
       return room
     }
 
-    if (room.guestId && room.guestId !== user.id) {
+    const isHostRejoin = room.hostId === user.id
+    const isGuestRejoin = room.guestId === user.id
+    const isParticipantRejoin = isHostRejoin || isGuestRejoin
+
+    if (room.guestId && room.guestId !== user.id && !isParticipantRejoin) {
       return room
     }
 
-    if (room.settings.isPrivate && (room.settings.passwordHash ?? '') !== (passwordHash ?? '')) {
+    if (!isParticipantRejoin && room.settings.isPrivate && (room.settings.passwordHash ?? '') !== (passwordHash ?? '')) {
       throw new Error('Wrong room password')
     }
 
-    if (!room.guestId) {
+    if (!room.guestId && !isHostRejoin) {
       room.guestId = user.id
       room.status = 'rps'
     }
@@ -101,7 +105,12 @@ export async function joinRoom(roomId: string, user: UserProfile, password: stri
     }
 
     room.penalties[user.id] = room.penalties[user.id] ?? 0
-    room.message = `${user.username} joined the room`
+    if (room.pausedByDisconnect?.playerId === user.id) {
+      delete room.pausedByDisconnect
+      room.message = `${user.username} rejoined. Match resumed.`
+    } else {
+      room.message = `${user.username} joined the room`
+    }
 
     return room
   })
@@ -235,13 +244,21 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
       return null
     }
 
+    if (room.pausedByDisconnect?.playerId && room.pausedByDisconnect.playerId !== userId) {
+      // Both players have now left; clean up the room.
+      return null
+    }
+
+    if (room.pausedByDisconnect?.playerId === userId) {
+      return room
+    }
+
     const opponentName = room.profiles[opponentId]?.username ?? 'Opponent'
-    room.status = 'finished'
-    room.winnerId = opponentId
-    room.loserId = userId
-    delete room.currentTurnPlayerId
-    delete room.pendingGuess
-    room.message = `${leaverName} left the room. ${opponentName} wins by forfeit.`
+    room.pausedByDisconnect = {
+      playerId: userId,
+      at: Date.now(),
+    }
+    room.message = `${leaverName} disconnected. ${opponentName}, keep waiting or leave too.`
     return room
   })
 
@@ -250,10 +267,21 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
   }
 }
 
+export async function keepWaitingForRejoin(roomId: string, userId: string): Promise<void> {
+  await runTransaction(roomRef(roomId), (room: RoomData | null) => {
+    if (!room || !room.pausedByDisconnect?.playerId) return room
+    const waitingName = room.profiles[userId]?.username ?? 'Opponent'
+    const disconnectedName = room.profiles[room.pausedByDisconnect.playerId]?.username ?? 'player'
+    room.message = `${waitingName} is waiting for ${disconnectedName} to rejoin.`
+    return room
+  })
+}
+
 export async function chooseRps(roomId: string, userId: string, choice: RpsChoice): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'rps') return room
     if (!room.guestId) return room
+    if (room.pausedByDisconnect?.playerId) return room
 
     room.rpsChoices = room.rpsChoices ?? {}
     room.rpsChoices[userId] = choice
@@ -282,6 +310,7 @@ export async function chooseRps(roomId: string, userId: string, choice: RpsChoic
 export async function submitSecret(roomId: string, userId: string, secret: string): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'secrets' || !room.guestId) return room
+    if (room.pausedByDisconnect?.playerId) return room
 
     if (!isValidCombination(secret, room.settings.codeLength, room.settings.allowDuplicates)) {
       throw new Error('Invalid secret for this room settings')
@@ -305,6 +334,7 @@ export async function submitSecret(roomId: string, userId: string, secret: strin
 export async function submitGuess(roomId: string, userId: string, guess: string): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'playing' || !room.guestId) return room
+    if (room.pausedByDisconnect?.playerId) return room
     if (room.currentTurnPlayerId !== userId) return room
     if (room.pendingGuess) return room
 
@@ -333,6 +363,7 @@ export async function answerGuess(
 ): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'playing' || !room.guestId) return room
+    if (room.pausedByDisconnect?.playerId) return room
     if (!room.pendingGuess || !room.secrets) return room
 
     const pending = room.pendingGuess

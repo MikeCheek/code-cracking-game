@@ -70,6 +70,10 @@ export interface RoomData {
   winnerId?: string
   loserId?: string
   message?: string
+  pausedByDisconnect?: {
+    playerId: string
+    at: number
+  }
 }
 
 export interface LobbyRoomSummary {

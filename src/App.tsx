@@ -10,6 +10,7 @@ import {
   deleteRoom,
   joinRoom,
   joinOwnRoomAsGuest,
+  keepWaitingForRejoin,
   leaveRoom as leaveRoomRealtime,
   lockSecret,
   unlockSecret,
@@ -71,6 +72,8 @@ function App() {
   const [waitingRoomP2Name, setWaitingRoomP2Name] = useState('Player 2')
   const [waitingRoomP2Avatar, setWaitingRoomP2Avatar] = useState('😎')
   const [isFirstVisit, setIsFirstVisit] = useState(!hasAudioConsent())
+  const [dismissedPausePromptAt, setDismissedPausePromptAt] = useState<number | null>(null)
+  const [lastLeftRoomId, setLastLeftRoomId] = useState<string | null>(null)
 
   const signedInUserId = user?.id ?? null
   const inRoomsRoute = location.pathname === '/rooms'
@@ -248,6 +251,12 @@ function App() {
 
   const myTurn = room?.currentTurnPlayerId === currentPlayerId
   const mySecret = room && currentPlayerId ? room.secrets?.[currentPlayerId] : undefined
+  const shouldShowDisconnectPauseModal = Boolean(
+    room?.pausedByDisconnect?.playerId &&
+    currentPlayerId &&
+    room.pausedByDisconnect.playerId !== currentPlayerId &&
+    room.pausedByDisconnect.at !== dismissedPausePromptAt,
+  )
 
   const myHostedRooms = useMemo(() => {
     if (!user) return []
@@ -552,6 +561,7 @@ function App() {
     try {
       await leaveRoomRealtime(room.id, currentPlayerId)
       setShowLeaveConfirmModal(false)
+      setLastLeftRoomId(room.id)
       toast.success('You left the room.')
       playAlert()
       resetRoomStateAndGoLobby()
@@ -566,6 +576,32 @@ function App() {
     await copyInviteLink(room.id)
     toast.success('Invite link copied')
     playSuccess()
+  }
+
+  const onKeepWaitingForOpponent = async () => {
+    if (!room || !currentPlayerId) return
+    try {
+      await keepWaitingForRejoin(room.id, currentPlayerId)
+      setDismissedPausePromptAt(room.pausedByDisconnect?.at ?? Date.now())
+      toast('Waiting for opponent to rejoin...')
+      playClick()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not keep waiting')
+    }
+  }
+
+  const onRejoinLastMatch = async () => {
+    if (!user || !lastLeftRoomId) return
+    try {
+      await joinRoom(lastLeftRoomId, user, '')
+      toast.success('Rejoined match!')
+      playSuccess()
+      navigate(`/room/${lastLeftRoomId}/play`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not rejoin match')
+      playAlert()
+      setLastLeftRoomId(null)
+    }
   }
 
   const setMusicEnabled = (nextEnabled: boolean) => {
@@ -755,6 +791,31 @@ function App() {
             </div>
           )}
         </header>
+
+        {inRoomsRoute && lastLeftRoomId && (
+          <section className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-md">
+            <p className="text-sm font-semibold text-amber-900">You recently left an active match.</p>
+            <p className="mt-1 text-xs text-amber-800">If it was by mistake, you can rejoin and resume the game.</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void onRejoinLastMatch()
+                }}
+                className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-500"
+              >
+                Rejoin Last Match
+              </button>
+              <button
+                type="button"
+                onClick={() => setLastLeftRoomId(null)}
+                className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                Dismiss
+              </button>
+            </div>
+          </section>
+        )}
 
         <Routes>
           <Route
@@ -988,7 +1049,7 @@ function App() {
           <div className="w-full max-w-md rounded-3xl border border-fuchsia-200 bg-white p-5 shadow-2xl">
             <h3 className="text-xl font-extrabold text-fuchsia-900">Leave Room?</h3>
             <p className="mt-2 text-sm text-fuchsia-800/90">
-              If you leave now, this match will end and your opponent will be notified with a forfeit win.
+              If you leave now, the match will be paused and your opponent can decide to wait for you or leave too.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -1006,6 +1067,38 @@ function App() {
                 className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-500"
               >
                 Confirm Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {shouldShowDisconnectPauseModal && room?.pausedByDisconnect?.playerId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-amber-200 bg-white p-5 shadow-2xl">
+            <h3 className="text-xl font-extrabold text-amber-900">Opponent Disconnected</h3>
+            <p className="mt-2 text-sm text-amber-900/90">
+              {room.profiles[room.pausedByDisconnect.playerId]?.username ?? 'Your opponent'} left the match. The game is paused.
+            </p>
+            <p className="mt-1 text-sm text-amber-900/90">Do you want to keep waiting for them to rejoin, or leave too?</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void onKeepWaitingForOpponent()
+                }}
+                className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-500"
+              >
+                Keep Waiting
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void leaveRoom()
+                }}
+                className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-500"
+              >
+                Leave Too
               </button>
             </div>
           </div>
