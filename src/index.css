@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Changa:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+@import 'tailwindcss';
+
+:root {
+  --bg-1: #fdf1df;
+  --bg-2: #fff8ef;
+  --bg-3: #d2f3ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Changa', sans-serif;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.bg-cream-pattern {
+  background-image:
+    radial-gradient(circle at 8% 10%, #ffd49c 0, transparent 24%),
+    radial-gradient(circle at 90% 13%, #c2f0ff 0, transparent 20%),
+    radial-gradient(circle at 50% 100%, #ffe4b9 0, transparent 30%),
+    linear-gradient(140deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+}
+
+input,
+button,
+select {
+  font-family: inherit;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
