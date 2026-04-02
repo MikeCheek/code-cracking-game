@@ -1043,13 +1043,18 @@ function App() {
       </div>
 
       <a
-        href="https://ko-fi.com/michelepulvirenti"
+        href="https://ko-fi.com/K3K21X43RG"
         target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-5 left-5 z-40 rounded-full border border-amber-300 bg-white/95 px-4 py-3 text-sm font-bold text-amber-900 shadow-xl backdrop-blur hover:bg-amber-50 transition-all duration-200"
-        title="Buy me a coffee - Support on Ko-fi"
+        rel="noreferrer"
+        className="fixed bottom-5 left-5 z-40 inline-block transition-transform duration-200 hover:scale-105 active:scale-95"
+        aria-label="Buy Me a Coffee at ko-fi.com"
       >
-        ☕ Buy me a coffee
+        <img
+          height="36"
+          style={{ border: 0, height: '36px' }}
+          src="https://storage.ko-fi.com/cdn/kofi4.png?v=6"
+          alt="Buy Me a Coffee at ko-fi.com"
+        />
       </a>
 
       <button
