@@ -8,6 +8,14 @@ export interface UserProfile {
   avatar: string
 }
 
+export interface AudioSettings {
+  musicEnabled: boolean
+  sfxEnabled: boolean
+  musicVolume: number
+  sfxVolume: number
+  musicTheme: 'arcade' | 'calm'
+}
+
 export interface PlayerProfile extends UserProfile {
   joinedAt: number
 }
@@ -16,6 +24,7 @@ export interface RoomSettings {
   codeLength: number
   allowDuplicates: boolean
   isPrivate: boolean
+  allowLies: boolean
   passwordHash?: string
 }
 
@@ -42,6 +51,7 @@ export interface GuessRecord {
 
 export interface RoomData {
   id: string
+  roomName: string
   createdAt: number
   status: GameStatus
   hostId: string
@@ -54,6 +64,7 @@ export interface RoomData {
   starterPlayerId?: string
   currentTurnPlayerId?: string
   secrets?: Record<string, string>
+  lockedSecrets?: Record<string, boolean>
   pendingGuess?: PendingGuess
   guessHistory?: Record<string, GuessRecord>
   winnerId?: string
@@ -63,8 +74,10 @@ export interface RoomData {
 
 export interface LobbyRoomSummary {
   id: string
+  roomName: string
   status: GameStatus
   isPrivate: boolean
+  hostId: string
   hostName: string
   codeLength: number
   allowDuplicates: boolean

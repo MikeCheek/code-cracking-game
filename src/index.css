@@ -2,9 +2,9 @@
 @import 'tailwindcss';
 
 :root {
-  --bg-1: #fdf1df;
-  --bg-2: #fff8ef;
-  --bg-3: #d2f3ff;
+  --bg-1: #ffe5f6;
+  --bg-2: #f9eeff;
+  --bg-3: #e4dcff;
 }
 
 * {
@@ -21,12 +21,22 @@ body {
   min-height: 100vh;
 }
 
-.bg-cream-pattern {
+.bg-orchid-pattern {
   background-image:
-    radial-gradient(circle at 8% 10%, #ffd49c 0, transparent 24%),
-    radial-gradient(circle at 90% 13%, #c2f0ff 0, transparent 20%),
-    radial-gradient(circle at 50% 100%, #ffe4b9 0, transparent 30%),
+    radial-gradient(circle at 9% 12%, #ff8bd8 0, transparent 25%),
+    radial-gradient(circle at 87% 15%, #b289ff 0, transparent 22%),
+    radial-gradient(circle at 52% 100%, #ffc2ec 0, transparent 32%),
     linear-gradient(140deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+  animation: bloomShift 14s ease-in-out infinite alternate;
+}
+
+@keyframes bloomShift {
+  0% {
+    background-position: 0% 0%, 100% 0%, 40% 100%, 0% 0%;
+  }
+  100% {
+    background-position: 4% 2%, 96% 3%, 56% 98%, 0% 0%;
+  }
 }
 
 input,
@@ -37,4 +47,178 @@ select {
 
 .font-mono {
   font-family: 'JetBrains Mono', monospace;
+}
+
+/* Entrance animations */
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Interactive animations */
+@keyframes popBounce {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotateZ(0deg);
+  }
+  10% {
+    transform: rotateZ(-1deg);
+  }
+  20% {
+    transform: rotateZ(1deg);
+  }
+  30% {
+    transform: rotateZ(0deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Utility classes */
+.animate-slide-in-down {
+  animation: slideInDown 0.5s ease-out;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out;
+}
+
+.animate-pop {
+  animation: popBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-pulse-soft {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
 }

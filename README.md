@@ -18,6 +18,7 @@ Realtime multiplayer code-cracking game built with:
 - Turn-based guessing with full history
 - Auto lie detection (claimed result vs actual result)
 - Penalty system (3 penalties = auto loss)
+- PWA install support with offline-ready and update notifications
 
 ## Setup
 
@@ -48,6 +49,17 @@ pnpm dev
 pnpm build
 pnpm preview
 ```
+
+## PWA Notes
+
+- Installable on mobile and desktop from browser install prompts.
+- App shell and key static assets are cached for offline startup.
+- You will see an in-app toast when:
+  - Offline mode is ready.
+  - A new app version is available (with a refresh action).
+- Useful routes for PWA shortcuts:
+  - `/welcome`
+  - `/rooms`
 
 ## Firebase Realtime Database Rules (example for testing)
 
