@@ -659,7 +659,7 @@ function App() {
   return (
     <div className="min-h-screen bg-orchid-pattern px-4 py-6 text-fuchsia-950">
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
           duration: 3500,
           style: {
@@ -667,6 +667,13 @@ function App() {
             color: '#4a044e',
             border: '1px solid #e9d5ff',
             boxShadow: '0 10px 28px rgba(91, 33, 182, 0.22)',
+            minWidth: '380px',
+            maxWidth: '92vw',
+            minHeight: '72px',
+            padding: '16px 18px',
+            borderRadius: '14px',
+            fontSize: '15px',
+            lineHeight: 1.35,
           },
           success: {
             iconTheme: {

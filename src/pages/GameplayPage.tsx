@@ -218,7 +218,7 @@ export function GameplayPage({
 
   const showPenaltyCounters = room.status === 'playing' || room.status === 'finished'
   const isPlaying = room.status === 'playing'
-  const isMyTurnCard = isPlaying && room.currentTurnPlayerId === user.id
+  const isMyTurnCard = isPlaying && myProfile?.id === room.currentTurnPlayerId
   const isOpponentTurnCard = isPlaying && opponentProfile?.id === room.currentTurnPlayerId
   const pendingGuessHints =
     room.pendingGuess && mySecret
