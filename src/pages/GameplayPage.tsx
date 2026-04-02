@@ -38,6 +38,8 @@ type GameplayPageProps = {
   onSubmitGuess: () => void
   onAnswerGuess: () => void
   onCopyInvite: () => void
+  onShareTelegram?: () => void
+  onShareWhatsApp?: () => void
   onLeaveRoom: () => void
   onDeleteRoom: () => void
 }
@@ -209,6 +211,8 @@ export function GameplayPage({
   onSubmitGuess,
   onAnswerGuess,
   onCopyInvite,
+  onShareTelegram,
+  onShareWhatsApp,
   onLeaveRoom,
   onDeleteRoom,
 }: GameplayPageProps) {
@@ -611,8 +615,34 @@ export function GameplayPage({
                 }}
                 className="w-full rounded-lg border border-violet-300 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900 hover:bg-violet-100"
               >
-                📋 Copy Invite Link
+                🔗 Smart Share Invite
               </button>
+
+              {onShareTelegram && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onShareTelegram()
+                    setShowSettingsModal(false)
+                  }}
+                  className="w-full rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+                >
+                  ✈️ Share On Telegram
+                </button>
+              )}
+
+              {onShareWhatsApp && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onShareWhatsApp()
+                    setShowSettingsModal(false)
+                  }}
+                  className="w-full rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+                >
+                  💬 Share On WhatsApp
+                </button>
+              )}
               
               {room.hostId === user.id && (
                 <button

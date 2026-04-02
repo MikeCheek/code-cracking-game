@@ -6,6 +6,8 @@ type WaitingRoomPageProps = {
   myProfile: PlayerProfile | null
   opponentProfile: PlayerProfile | null
   onCopyInvite: () => void
+  onShareTelegram: () => void
+  onShareWhatsApp: () => void
   onLeaveRoom: () => void
   onDeleteRoom: () => void
   onJoinAsPlayer2?: () => void
@@ -17,6 +19,8 @@ export function WaitingRoomPage({
   myProfile,
   opponentProfile,
   onCopyInvite,
+  onShareTelegram,
+  onShareWhatsApp,
   onLeaveRoom,
   onDeleteRoom,
   onJoinAsPlayer2,
@@ -52,12 +56,24 @@ export function WaitingRoomPage({
           </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <button
             onClick={onCopyInvite}
             className="rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-900 hover:bg-violet-100"
           >
-            Copy Invite
+            Share Invite
+          </button>
+          <button
+            onClick={onShareTelegram}
+            className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+          >
+            Telegram
+          </button>
+          <button
+            onClick={onShareWhatsApp}
+            className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+          >
+            WhatsApp
           </button>
           <button
             onClick={onLeaveRoom}

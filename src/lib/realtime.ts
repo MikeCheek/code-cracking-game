@@ -459,7 +459,9 @@ export async function getRoom(roomId: string): Promise<RoomData | null> {
 }
 
 export function buildInviteLink(roomId: string): string {
-  const url = new URL(window.location.href)
+  const basePath = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')
+  const url = new URL(window.location.origin)
+  url.pathname = `${basePath}/rooms`.replace('//', '/')
   url.searchParams.set('room', roomId)
   return url.toString()
 }

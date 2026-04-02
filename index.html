@@ -11,10 +11,10 @@
     <meta name="description" content="Code Cracking is a realtime multiplayer code-cracking game you can play with friends online. Guess your opponent's secret code using logic and strategy. Install as a PWA for offline play." />
     <meta name="keywords" content="code cracking, multiplayer game, online game, bulls and cows, logic game, strategy game, PWA, realtime game" />
     <meta name="author" content="Michele Skere" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="language" content="en" />
     <meta name="revisit-after" content="7 days" />
-    <canonical href="https://code-cracking.vercel.app/" />
+    <link rel="canonical" href="https://code-cracking.vercel.app/" />
     
     <!-- Open Graph Tags (Social Sharing) -->
     <meta property="og:type" content="website" />
@@ -22,13 +22,17 @@
     <meta property="og:description" content="A realtime multiplayer code-cracking game where you guess your opponent's secret code. Play online or offline as a PWA." />
     <meta property="og:url" content="https://code-cracking.vercel.app/" />
     <meta property="og:site_name" content="Code Cracking" />
-    <meta property="og:image" content="https://code-cracking.vercel.app/favicon.svg" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://code-cracking.vercel.app/icon-maskable.svg" />
+    <meta property="og:image:alt" content="Code Cracking game icon" />
     
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Code Cracking - Realtime Multiplayer Game" />
     <meta name="twitter:description" content="Challenge your friends to guess your secret code in this realtime multiplayer game." />
-    <meta name="twitter:image" content="https://code-cracking.vercel.app/favicon.svg" />
+    <meta name="twitter:image" content="https://code-cracking.vercel.app/icon-maskable.svg" />
+    <meta name="twitter:image:alt" content="Code Cracking game icon" />
+    <meta name="twitter:url" content="https://code-cracking.vercel.app/" />
     
     <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes" />
@@ -44,7 +48,7 @@
       "name": "Code Cracking",
       "description": "A realtime multiplayer code-cracking game where you guess your opponent's secret code using logic and strategy.",
       "url": "https://code-cracking.vercel.app/",
-      "applicationCategory": "Game",
+      "applicationCategory": "GameApplication",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -54,21 +58,31 @@
         "@type": "Person",
         "name": "Michele Skere"
       },
-      "screenshot": [
-        "https://code-cracking.vercel.app/favicon.svg"
-      ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "100"
-      }
+      "image": "https://code-cracking.vercel.app/icon-maskable.svg",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript"
     }
     </script>
     
     <title>Code Cracking - Realtime Multiplayer Code-Cracking Game</title>
   </head>
-  <body>
-    <div id="root"></div>
+  <body itemscope itemtype="https://schema.org/WebPage">
+    <meta itemprop="name" content="Code Cracking" />
+    <meta itemprop="description" content="Realtime multiplayer code-cracking game playable in the browser." />
+    <meta itemprop="inLanguage" content="en" />
+    <meta itemprop="url" content="https://code-cracking.vercel.app/" />
+
+    <div
+      id="root"
+      itemprop="mainEntity"
+      itemscope
+      itemtype="https://schema.org/WebApplication"
+      aria-label="Code Cracking application"
+    >
+      <meta itemprop="name" content="Code Cracking" />
+      <meta itemprop="applicationCategory" content="GameApplication" />
+      <meta itemprop="operatingSystem" content="Any" />
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

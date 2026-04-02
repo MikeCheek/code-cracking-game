@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { DEFAULT_CODE_LENGTH } from './constants'
 import {
   answerGuess,
   chooseRps,
-  copyInviteLink,
   createRoom,
   deleteRoom,
   joinRoom,
@@ -18,6 +17,12 @@ import {
   subscribeLobby,
   subscribeRoom,
 } from './lib/realtime'
+import { getTelegramUserProfile, isTelegramWebApp, prepareTelegramWebApp } from './lib/platform'
+import {
+  shareInviteSmart,
+  shareInviteViaTelegram,
+  shareInviteViaWhatsApp,
+} from './lib/share'
 import { configureAudio, ensureAudioReady, playAlert, playClick, playLie, playSuccess } from './lib/sfx'
 import { clearUser, hasAudioConsent, loadAudioSettings, loadUser, saveAudioSettings, saveUser, setAudioConsent } from './lib/storage'
 import { generateRandomAvatar } from './utils/profile'
@@ -28,7 +33,8 @@ import { WelcomePage } from './pages/WelcomePage'
 import { generateRoomName } from './utils/roomName'
 import type { AudioSettings, LobbyRoomSummary, RoomData, RpsChoice, UserProfile } from './types'
 
-const initialStoredUser = loadUser()
+const initialTelegramUser = typeof window !== 'undefined' ? getTelegramUserProfile() : null
+const initialStoredUser = initialTelegramUser ?? loadUser()
 const initialAudioSettings = loadAudioSettings()
 
 function App() {
@@ -36,6 +42,10 @@ function App() {
   const location = useLocation()
   const roomMatch = useMatch('/room/:roomId/*')
   const routeRoomId = roomMatch?.params.roomId ?? null
+  const inviteRoomId = useMemo(() => {
+    const inviteId = new URLSearchParams(location.search).get('room')
+    return inviteId?.trim() || null
+  }, [location.search])
 
   const [user, setUser] = useState<UserProfile | null>(initialStoredUser)
   const [username, setUsername] = useState(initialStoredUser?.username ?? '')
@@ -74,6 +84,7 @@ function App() {
   const [isFirstVisit, setIsFirstVisit] = useState(!hasAudioConsent())
   const [dismissedPausePromptAt, setDismissedPausePromptAt] = useState<number | null>(null)
   const [lastLeftRoomId, setLastLeftRoomId] = useState<string | null>(null)
+  const inviteJoinHandledRef = useRef<string | null>(null)
 
   const signedInUserId = user?.id ?? null
   const inRoomsRoute = location.pathname === '/rooms'
@@ -130,6 +141,18 @@ function App() {
     configureAudio(audioSettings)
     saveAudioSettings(audioSettings)
   }, [audioSettings])
+
+  useEffect(() => {
+    if (!isTelegramWebApp()) return
+    prepareTelegramWebApp()
+
+    const telegramUser = getTelegramUserProfile()
+    if (!telegramUser) return
+
+    if (!loadUser()) {
+      saveUser(telegramUser)
+    }
+  }, [])
 
   // Clear RPS choice, secret lock, and code inputs when hotseat player changes (fixes privacy in hotseat mode)
   useEffect(() => {
@@ -383,7 +406,7 @@ function App() {
     }
   }
 
-  const onJoinRoom = async (targetRoomId: string): Promise<boolean> => {
+  const onJoinRoom = useCallback(async (targetRoomId: string): Promise<boolean> => {
     if (!user) return false
     try {
       await joinRoom(targetRoomId, user, joinPassword)
@@ -398,7 +421,28 @@ function App() {
       playAlert()
       return false
     }
-  }
+  }, [joinPassword, navigate, user])
+
+  useEffect(() => {
+    if (!user || !inRoomsRoute || !inviteRoomId) return
+    if (inviteJoinHandledRef.current === inviteRoomId) return
+
+    inviteJoinHandledRef.current = inviteRoomId
+
+    const tryInviteJoin = async () => {
+      const joined = await onJoinRoom(inviteRoomId)
+      if (!joined) {
+        toast('Open room list and join manually if this invite is private.')
+      }
+
+      const params = new URLSearchParams(location.search)
+      params.delete('room')
+      const nextSearch = params.toString()
+      navigate({ pathname: '/rooms', search: nextSearch ? `?${nextSearch}` : '' }, { replace: true })
+    }
+
+    void tryInviteJoin()
+  }, [inviteRoomId, inRoomsRoute, location.search, navigate, onJoinRoom, user])
 
   const onJoinOwnRoomAsGuest = async (
     targetRoomId: string,
@@ -573,9 +617,32 @@ function App() {
 
   const onCopyInvite = async () => {
     if (!room) return
-    await copyInviteLink(room.id)
-    toast.success('Invite link copied')
-    playSuccess()
+    try {
+      const channel = await shareInviteSmart(room.id, room.roomName)
+      if (channel === 'clipboard') {
+        toast.success('Invite copied')
+      } else {
+        toast.success('Invite shared')
+      }
+      playSuccess()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not share invite')
+      playAlert()
+    }
+  }
+
+  const onShareInviteTelegram = () => {
+    if (!room) return
+    shareInviteViaTelegram(room.id, room.roomName)
+    toast.success('Opened Telegram share')
+    playClick()
+  }
+
+  const onShareInviteWhatsApp = () => {
+    if (!room) return
+    shareInviteViaWhatsApp(room.id, room.roomName)
+    toast.success('Opened WhatsApp share')
+    playClick()
   }
 
   const onKeepWaitingForOpponent = async () => {
@@ -906,6 +973,8 @@ function App() {
                     myProfile={myProfile}
                     opponentProfile={opponentProfile}
                     onCopyInvite={onCopyInvite}
+                    onShareTelegram={onShareInviteTelegram}
+                    onShareWhatsApp={onShareInviteWhatsApp}
                     onLeaveRoom={requestLeaveRoom}
                     onDeleteRoom={() => onDeleteHostedRoom(room.id)}
                     onJoinAsPlayer2={onOpenWaitingRoomP2Setup}
@@ -952,6 +1021,8 @@ function App() {
                     onSubmitGuess={onSubmitGuess}
                     onAnswerGuess={onAnswerGuess}
                     onCopyInvite={onCopyInvite}
+                    onShareTelegram={onShareInviteTelegram}
+                    onShareWhatsApp={onShareInviteWhatsApp}
                     onLeaveRoom={requestLeaveRoom}
                     onDeleteRoom={() => onDeleteHostedRoom(room.id)}
                   />
