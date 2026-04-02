@@ -12,6 +12,7 @@ let currentSettings: AudioSettings = {
   musicVolume: 0.35,
   sfxVolume: 0.65,
   musicTheme: 'arcade',
+  uiTheme: 'neon-pink',
 }
 
 type MusicThemeConfig = {
@@ -172,6 +173,7 @@ export function configureAudio(nextSettings: AudioSettings): void {
     musicVolume: clampVolume(nextSettings.musicVolume),
     sfxVolume: clampVolume(nextSettings.sfxVolume),
     musicTheme: nextSettings.musicTheme,
+    uiTheme: nextSettings.uiTheme,
   }
 
   applySettingsToGains()

@@ -25,68 +25,105 @@ export function WaitingRoomPage({
   onDeleteRoom,
   onJoinAsPlayer2,
 }: WaitingRoomPageProps) {
+  const roomTags = [
+    room.settings.isPrivate ? 'Private' : 'Public',
+    `${room.settings.codeLength} digits`,
+    room.settings.allowDuplicates ? 'Duplicates on' : 'Unique digits',
+    room.settings.allowLies ? 'Lies enabled' : 'No lies',
+  ]
+
   return (
     <section className="space-y-5">
-      <article className="rounded-3xl border border-violet-200 bg-white p-6 shadow-xl">
-        <p className="text-xs uppercase tracking-[0.2em] text-violet-700">Room #{room.id.slice(0, 6)}</p>
-        <h2 className="text-2xl font-bold text-fuchsia-950">{room.roomName}</h2>
-        <p className="text-sm font-semibold text-fuchsia-900">Waiting Room</p>
-        <p className="text-sm text-fuchsia-800/80">Share your invite link. Match starts as soon as someone joins.</p>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl bg-violet-50 p-3">
-            <p className="font-semibold">You: {myProfile?.avatar} {myProfile?.username}</p>
+      <article className="glass-panel-strong rounded-[2rem] p-6 md:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.34em] text-fuchsia-300">Staging bay</p>
+            <h2 className="mt-2 text-3xl font-bold text-white md:text-4xl">{room.roomName}</h2>
+            <p className="mt-2 text-sm text-slate-300">Room #{room.id.slice(0, 6)} · waiting for launch</p>
           </div>
-          <div className="rounded-xl bg-violet-50 p-3">
+
+          <div className="rounded-[1.25rem] border border-white/8 bg-white/6 px-4 py-3 text-right">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Your slot</p>
+            <p className="mt-2 text-3xl">{myProfile?.avatar}</p>
+            <p className="text-sm font-semibold text-white">{myProfile?.username}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {roomTags.map((tag) => (
+            <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200">
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-6 rounded-[1.5rem] border border-fuchsia-300/15 bg-fuchsia-300/10 p-5">
+          <p className="text-sm font-semibold text-fuchsia-100">Match will begin as soon as the opponent joins.</p>
+          <p className="mt-2 text-sm leading-6 text-fuchsia-50/80">
+            Send the invite link now, or use a direct share button below to open Telegram, WhatsApp, or the native share sheet.
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">You</p>
+            <p className="mt-2 text-base font-semibold text-white">
+              {myProfile?.avatar} {myProfile?.username}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Opponent</p>
             {opponentProfile ? (
-              <p className="font-semibold">Opponent: {opponentProfile.avatar} {opponentProfile.username}</p>
+              <p className="mt-2 text-base font-semibold text-white">
+                {opponentProfile.avatar} {opponentProfile.username}
+              </p>
             ) : room.hostId === user.id && onJoinAsPlayer2 ? (
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-fuchsia-700">No opponent yet</span>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-sm text-slate-300">No opponent yet</p>
                 <button
                   onClick={onJoinAsPlayer2}
-                  className="rounded-lg border border-violet-300 bg-violet-100 px-2 py-1 text-xs font-bold text-violet-900 hover:bg-violet-200"
+                  className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-2 text-xs font-bold text-fuchsia-100 transition hover:bg-fuchsia-300/15"
                 >
                   Join as P2
                 </button>
               </div>
             ) : (
-              <p className="font-semibold">Opponent: ❔ Waiting...</p>
+              <p className="mt-2 text-sm text-slate-300">Waiting for a player...</p>
             )}
           </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button
             onClick={onCopyInvite}
-            className="rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-900 hover:bg-violet-100"
+            className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
           >
-            Share Invite
+            Copy invite
           </button>
           <button
             onClick={onShareTelegram}
-            className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+            className="rounded-[1.5rem] border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm font-semibold text-sky-100 transition hover:bg-sky-400/15"
           >
             Telegram
           </button>
           <button
             onClick={onShareWhatsApp}
-            className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+            className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
           >
             WhatsApp
           </button>
           <button
             onClick={onLeaveRoom}
-            className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-500"
+            className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/15"
           >
-            Leave Room
+            Leave
           </button>
           {room.hostId === user.id && (
             <button
               onClick={onDeleteRoom}
-              className="rounded-lg bg-fuchsia-700 px-3 py-2 text-sm font-semibold text-white hover:bg-fuchsia-600"
+              className="rounded-[1.5rem] border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
             >
-              Delete Room
+              Delete room
             </button>
           )}
         </div>

@@ -29,16 +29,18 @@ export function WelcomePage({
   onUseSavedProfile,
 }: WelcomePageProps) {
   const [consentShown, setConsentShown] = useState(!isFirstVisit)
+
   return (
     <>
       {isFirstVisit && !consentShown && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fuchsia-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-fuchsia-200 bg-white p-6 shadow-2xl">
-            <h3 className="text-2xl font-black text-fuchsia-950">Enable Audio?</h3>
-            <p className="mt-2 text-sm text-fuchsia-800/90">
-              Code Cracking has background music and sound effects to enhance gameplay. Would you like them enabled?
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-md rounded-[1.75rem] p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.34em] text-fuchsia-300">Audio Prompt</p>
+            <h3 className="mt-2 text-3xl font-bold text-white">Turn the sound on?</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              This game uses sound cues for wins, lies, and turn changes. Enable audio for the full arcade feel.
             </p>
-            <div className="mt-5 flex gap-3">
+            <div className="mt-6 flex gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -46,7 +48,7 @@ export function WelcomePage({
                   setConsentShown(true)
                   onAudioConsentDone()
                 }}
-                className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Keep Muted
               </button>
@@ -57,7 +59,7 @@ export function WelcomePage({
                   setConsentShown(true)
                   onAudioConsentDone()
                 }}
-                className="flex-1 rounded-lg bg-gradient-to-r from-fuchsia-600 to-violet-500 px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+                className="flex-1 rounded-2xl bg-gradient-to-r from-fuchsia-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
               >
                 Enable Audio
               </button>
@@ -66,85 +68,122 @@ export function WelcomePage({
         </div>
       )}
 
-      <section className="grid gap-6 md:grid-cols-[2fr_1fr]">
-      <article className="rounded-3xl border border-violet-200 bg-white p-6 shadow-xl">
-        <h2 className="text-2xl font-black text-fuchsia-900">Welcome To Code Cracking</h2>
-        <p className="mt-2 text-sm text-fuchsia-800/80">
-          Confirm your player info, change it if you want, then enter the game rooms.
-        </p>
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <article className="glass-panel-strong relative overflow-hidden rounded-[2rem] p-6 md:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,116,216,0.2),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(159,124,255,0.15),transparent_32%)]" />
+          <div className="relative">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-2xl">
+                <p className="text-xs font-bold uppercase tracking-[0.36em] text-fuchsia-300">Code Cracking Arena</p>
+                <h2 className="mt-3 text-4xl font-bold tracking-tight text-white md:text-6xl">
+                  Build a profile. Find a room. Start the duel.
+                </h2>
+                <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 md:text-base">
+                  This is the fast lane into the match loop: set your identity, launch into the lobby, and get straight
+                  to the guessing game.
+                </p>
+              </div>
 
-        {user && (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-            Saved profile: {user.avatar} {user.username}
+              <div className="glass-panel rounded-[1.5rem] px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Player token</p>
+                <p className="mt-2 text-3xl">{avatar}</p>
+                <p className="text-sm font-semibold text-slate-100">{username || 'Choose a name'}</p>
+              </div>
+            </div>
+
+            {user && (
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">
+                <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                Saved profile ready: {user.avatar} {user.username}
+              </div>
+            )}
+
+            <div className="mt-6 rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+              <p className="text-sm font-semibold text-white">Quick start</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Choose a name and avatar, enter the lobby, then create or join a room. The setup is designed for fast, repeat play.
+              </p>
+            </div>
           </div>
-        )}
+        </article>
 
-        <label className="mt-4 block text-sm font-semibold text-fuchsia-900">Username</label>
-        <div className="mt-1 flex gap-2">
-          <input
-            value={username}
-            onChange={(event) => onUsernameChange(event.target.value)}
-            placeholder="Username"
-            className="flex-1 rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 outline-none focus:border-fuchsia-500"
-          />
-          <button
-            type="button"
-            onClick={() => onUsernameChange(generateRandomUsername())}
-            className="rounded-xl bg-violet-200 px-3 py-2 text-xs font-semibold text-violet-900 hover:bg-violet-300"
-            title="Generate random username"
-          >
-            🎲
-          </button>
-        </div>
+        <article className="space-y-4 rounded-[2rem] border border-white/8 bg-white/6 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.32em] text-fuchsia-300">Profile Console</p>
+            <h3 className="mt-2 text-2xl font-bold text-white">Set your player identity</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              One name, one avatar, and you are in. Everything here is optimized for quick re-entry.
+            </p>
+          </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {AVATARS.map((item) => (
+          <label className="block text-sm font-semibold text-slate-100">Username</label>
+          <div className="flex gap-2">
+            <input
+              value={username}
+              onChange={(event) => onUsernameChange(event.target.value)}
+              placeholder="Enter a username"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
+            />
             <button
               type="button"
-              key={item}
-              onClick={() => onAvatarChange(item)}
-              className={`h-11 w-11 rounded-xl text-2xl transition ${
-                avatar === item ? 'bg-fuchsia-600 text-white shadow-md' : 'bg-violet-100 hover:bg-violet-200'
-              }`}
+              onClick={() => onUsernameChange(generateRandomUsername())}
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-fuchsia-200 transition hover:bg-white/10"
+              title="Generate random username"
             >
-              {item}
+              Random
             </button>
-          ))}
-        </div>
+          </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            onClick={onEnterLobby}
-            className="rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-500 px-8 py-3 font-semibold text-white shadow-lg transition hover:scale-[1.02]"
-          >
-            Enter Rooms {avatar}
-          </button>
-          {user && (
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-sm font-semibold text-slate-100">Avatar</label>
+              <span className="text-xs text-slate-400">Tap to choose</span>
+            </div>
+            <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-5 lg:grid-cols-5">
+              {AVATARS.map((item) => (
+                <button
+                  type="button"
+                  key={item}
+                  onClick={() => onAvatarChange(item)}
+                  className={`flex aspect-square items-center justify-center rounded-2xl text-2xl transition ${
+                    avatar === item
+                      ? 'border border-fuchsia-300/50 bg-fuchsia-300/20 shadow-[0_0_0_1px_rgba(255,116,216,0.25)] scale-105'
+                      : 'border border-white/10 bg-white/5 hover:border-fuchsia-300/30 hover:bg-white/10'
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3">
             <button
-              onClick={onUseSavedProfile}
-              className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-900 hover:bg-emerald-100"
+              onClick={onEnterLobby}
+              className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-5 py-4 text-base font-bold text-slate-950 shadow-[0_18px_40px_rgba(255,116,216,0.2)] transition hover:brightness-110"
             >
-              Use Saved And Enter
+              Enter Lobby
             </button>
-          )}
-        </div>
-      </article>
+            {user && (
+              <button
+                onClick={onUseSavedProfile}
+                className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-4 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
+              >
+                Use saved profile
+              </button>
+            )}
+          </div>
 
-      <article className="rounded-3xl border border-violet-200 bg-white p-6 shadow-xl">
-        <h3 className="text-lg font-extrabold text-fuchsia-900">How It Works</h3>
-        <p className="mt-2 text-sm text-fuchsia-800/80">1. Choose profile.</p>
-        <p className="text-sm text-fuchsia-800/80">2. Enter rooms page.</p>
-        <p className="text-sm text-fuchsia-800/80">3. Create or join a room.</p>
-        <p className="text-sm text-fuchsia-800/80">4. Duel starts after setup phases.</p>
-
-        <div className="mt-4 rounded-xl bg-fuchsia-50 p-3 text-xs text-fuchsia-900">
-          <p className="font-bold">Quick rules</p>
-          <p className="mt-1">Bulls: correct digit in the correct position.</p>
-          <p>Cows: correct digit but in the wrong position.</p>
-          <p className="mt-1">Wrong bulls/cows answer counts as a lie and adds a penalty.</p>
-        </div>
-      </article>
-    </section>
+          <div className="rounded-[1.5rem] border border-white/8 bg-slate-950/45 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Quick rules</p>
+            <div className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+              <p>Bulls are exact digits in exact positions.</p>
+              <p>Cows are correct digits in the wrong positions.</p>
+              <p>A wrong answer during a challenge is treated as a lie and adds pressure.</p>
+            </div>
+          </div>
+        </article>
+      </section>
     </>
   )
 }

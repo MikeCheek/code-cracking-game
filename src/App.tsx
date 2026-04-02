@@ -37,6 +37,13 @@ const initialTelegramUser = typeof window !== 'undefined' ? getTelegramUserProfi
 const initialStoredUser = initialTelegramUser ?? loadUser()
 const initialAudioSettings = loadAudioSettings()
 
+const UI_THEME_OPTIONS: Array<{ id: AudioSettings['uiTheme']; label: string }> = [
+  { id: 'neon-pink', label: 'Neon Pink' },
+  { id: 'midnight-purple', label: 'Midnight Purple' },
+  { id: 'arcade-cyan', label: 'Arcade Cyan' },
+  { id: 'sunset-pop', label: 'Sunset Pop' },
+]
+
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -691,6 +698,10 @@ function App() {
     setAudioSettings((current) => ({ ...current, musicTheme: nextTheme }))
   }
 
+  const setUiTheme = (nextTheme: AudioSettings['uiTheme']) => {
+    setAudioSettings((current) => ({ ...current, uiTheme: nextTheme }))
+  }
+
   const setAudioEnabledQuick = (enabled: boolean) => {
     setAudioSettings((current) => ({
       ...current,
@@ -724,16 +735,16 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-orchid-pattern px-4 py-6 text-fuchsia-950">
+    <div className={`theme-${audioSettings.uiTheme} min-h-screen bg-orchid-pattern px-3 py-4 text-slate-100 app-noise sm:px-4 sm:py-6`}>
       <Toaster
         position="top-center"
         toastOptions={{
           duration: 3500,
           style: {
-            background: '#ffffff',
-            color: '#4a044e',
-            border: '1px solid #e9d5ff',
-            boxShadow: '0 10px 28px rgba(91, 33, 182, 0.22)',
+            background: 'rgba(8, 18, 30, 0.92)',
+            color: '#f4f9ff',
+            border: '1px solid rgba(161, 196, 255, 0.25)',
+            boxShadow: '0 18px 40px rgba(0, 0, 0, 0.35)',
             minWidth: '380px',
             maxWidth: '92vw',
             minHeight: '72px',
@@ -741,48 +752,49 @@ function App() {
             borderRadius: '14px',
             fontSize: '15px',
             lineHeight: 1.35,
+            backdropFilter: 'blur(10px)',
           },
           success: {
             iconTheme: {
-              primary: '#a21caf',
-              secondary: '#ffffff',
+              primary: '#6fffe9',
+              secondary: '#031220',
             },
           },
           error: {
             iconTheme: {
-              primary: '#e11d48',
-              secondary: '#ffffff',
+              primary: '#fb7185',
+              secondary: '#08121d',
             },
           },
         }}
       />
 
       <div className="mx-auto max-w-6xl">
-        <header className={`mb-6 rounded-3xl border bg-gradient-to-r shadow-xl backdrop-blur ${headerMeta.accent} ${isWelcomeRoute ? 'p-5' : 'p-3'} `}>
+        <header className={`glass-panel-strong mb-6 rounded-[2rem] ${isWelcomeRoute ? 'p-5 md:p-7' : 'p-4 md:p-5'} `}>
           {isWelcomeRoute ? (
             <>
               <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-xs uppercase tracking-[0.3em] text-fuchsia-700">{headerMeta.section}</p>
+                <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan-300">{headerMeta.section}</p>
                 {user && (
                   <div ref={userMenuRef} className="relative">
                     <button
                       type="button"
                       onClick={() => setShowUserMenu((open) => !open)}
-                      className="flex items-center gap-2 rounded-full border border-violet-300 bg-white/90 px-3 py-1.5 text-xs font-semibold text-violet-900 shadow-sm hover:bg-white"
+                      className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition hover:bg-white/10"
                     >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-base">{user.avatar}</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-base">{user.avatar}</span>
                       <span className="max-w-[140px] truncate">{user.username}</span>
                     </button>
 
                     {showUserMenu && (
-                      <div className="absolute right-0 top-10 z-20 w-44 rounded-xl border border-violet-200 bg-white p-2 shadow-xl">
+                      <div className="glass-panel-strong absolute right-0 top-10 z-20 w-44 rounded-xl p-2">
                         <button
                           type="button"
                           onClick={() => {
                             setShowUserMenu(false)
                             navigate('/welcome')
                           }}
-                          className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-violet-900 hover:bg-violet-50"
+                          className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
                         >
                           Edit Profile
                         </button>
@@ -792,14 +804,14 @@ function App() {
                             setShowUserMenu(false)
                             navigate('/rooms')
                           }}
-                          className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-violet-900 hover:bg-violet-50"
+                          className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
                         >
                           Go To Rooms
                         </button>
                         <button
                           type="button"
                           onClick={onLogout}
-                          className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                          className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
                         >
                           Log Out
                         </button>
@@ -808,36 +820,36 @@ function App() {
                   </div>
                 )}
               </div>
-              <h1 className="mt-2 text-3xl font-black text-fuchsia-950 md:text-5xl">{headerMeta.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm text-fuchsia-800/80 md:text-base">{headerMeta.subtitle}</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-6xl">{headerMeta.title}</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 md:text-base">{headerMeta.subtitle}</p>
             </>
           ) : (
             <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-2 text-xl">
-                <span className="font-mono uppercase tracking-[0.12em] whitespace-nowrap text-fuchsia-700">{headerMeta.section}</span>
-                <span className="text-fuchsia-500">|</span>
-                <span className="whitespace-nowrap font-extrabold text-fuchsia-950">{headerMeta.title}</span>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-xs uppercase tracking-[0.28em] text-cyan-300">{headerMeta.section}</p>
+                <p className="mt-1 text-xl font-extrabold text-white md:text-3xl">{headerMeta.title}</p>
+                <p className="mt-1 text-sm text-slate-300">{headerMeta.subtitle}</p>
               </div>
               {user && (
                 <div ref={userMenuRef} className="relative shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowUserMenu((open) => !open)}
-                    className="flex items-center gap-2 rounded-full border border-violet-300 bg-white/90 px-3 py-1.5 text-xs font-semibold text-violet-900 shadow-sm hover:bg-white"
+                    className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition hover:bg-white/10"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-base">{user.avatar}</span>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-base">{user.avatar}</span>
                     <span className="max-w-[140px] truncate">{user.username}</span>
                   </button>
 
                   {showUserMenu && (
-                    <div className="absolute right-0 top-10 z-20 w-44 rounded-xl border border-violet-200 bg-white p-2 shadow-xl">
+                    <div className="glass-panel-strong absolute right-0 top-10 z-20 w-44 rounded-xl p-2">
                       <button
                         type="button"
                         onClick={() => {
                           setShowUserMenu(false)
                           navigate('/welcome')
                         }}
-                        className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-violet-900 hover:bg-violet-50"
+                        className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
                       >
                         Edit Profile
                       </button>
@@ -847,14 +859,14 @@ function App() {
                           setShowUserMenu(false)
                           navigate('/rooms')
                         }}
-                        className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-violet-900 hover:bg-violet-50"
+                        className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
                       >
                         Go To Rooms
                       </button>
                       <button
                         type="button"
                         onClick={onLogout}
-                        className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                        className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
                       >
                         Log Out
                       </button>
@@ -867,23 +879,23 @@ function App() {
         </header>
 
         {inRoomsRoute && lastLeftRoomId && (
-          <section className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-md">
-            <p className="text-sm font-semibold text-amber-900">You recently left an active match.</p>
-            <p className="mt-1 text-xs text-amber-800">If it was by mistake, you can rejoin and resume the game.</p>
+          <section className="mb-4 rounded-2xl border border-amber-300/25 bg-amber-300/10 p-4 shadow-md backdrop-blur">
+            <p className="text-sm font-semibold text-amber-100">You recently left an active match.</p>
+            <p className="mt-1 text-xs text-amber-100/80">If it was by mistake, you can rejoin and resume the game.</p>
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
                 onClick={() => {
                   void onRejoinLastMatch()
                 }}
-                className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-500"
+                className="rounded-lg bg-amber-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110"
               >
                 Rejoin Last Match
               </button>
               <button
                 type="button"
                 onClick={() => setLastLeftRoomId(null)}
-                className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+                className="rounded-lg border border-amber-300/25 bg-transparent px-3 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/10"
               >
                 Dismiss
               </button>
@@ -980,9 +992,9 @@ function App() {
                     onJoinAsPlayer2={onOpenWaitingRoomP2Setup}
                   />
                 ) : (
-                  <section className="rounded-3xl border border-violet-200 bg-white p-6 shadow-xl">
-                    <h2 className="text-2xl font-bold text-fuchsia-900">Loading Room...</h2>
-                    <p className="mt-2 text-sm text-fuchsia-800/80">Connecting to game state.</p>
+                  <section className="glass-panel rounded-3xl p-6">
+                    <h2 className="text-2xl font-bold text-white">Loading room...</h2>
+                    <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
                   </section>
                 )
               ) : (
@@ -1027,9 +1039,9 @@ function App() {
                     onDeleteRoom={() => onDeleteHostedRoom(room.id)}
                   />
                 ) : (
-                  <section className="rounded-3xl border border-violet-200 bg-white p-6 shadow-xl">
-                    <h2 className="text-2xl font-bold text-fuchsia-900">Loading Room...</h2>
-                    <p className="mt-2 text-sm text-fuchsia-800/80">Connecting to game state.</p>
+                  <section className="glass-panel rounded-3xl p-6">
+                    <h2 className="text-2xl font-bold text-white">Loading room...</h2>
+                    <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
                   </section>
                 )
               ) : (
@@ -1060,25 +1072,45 @@ function App() {
       <button
         type="button"
         onClick={() => setShowSettingsPanel((open) => !open)}
-        className="fixed bottom-5 right-5 z-40 rounded-full border border-violet-300 bg-white/95 px-4 py-3 text-sm font-bold text-violet-900 shadow-xl backdrop-blur hover:bg-violet-50"
+        className="!fixed bottom-4 right-4 z-40 rounded-full border border-white/20 bg-slate-900/85 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-xl backdrop-blur transition hover:bg-slate-900 sm:bottom-5 sm:right-5"
       >
-        ⚙️ Settings
+        Quick Settings
       </button>
 
       {showSettingsPanel && (
-        <section className="fixed bottom-20 right-5 z-50 w-[min(92vw,340px)] rounded-2xl border border-violet-200 bg-white p-4 shadow-2xl">
+        <section className="glass-panel-strong fixed bottom-16 right-3 z-50 w-[min(95vw,360px)] rounded-2xl p-4 sm:bottom-20 sm:right-5">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-extrabold text-fuchsia-900">Audio Settings</h3>
+            <h3 className="text-lg font-extrabold text-white">Quick Settings</h3>
             <button
               type="button"
               onClick={() => setShowSettingsPanel(false)}
-              className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2 py-1 text-xs font-semibold text-fuchsia-800 hover:bg-fuchsia-100"
+              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
             >
               Close
             </button>
           </div>
 
-          <label className="mt-4 flex items-center justify-between text-sm font-semibold text-fuchsia-900">
+          <div className="mt-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Theme</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {UI_THEME_OPTIONS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setUiTheme(item.id)}
+                  className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                    audioSettings.uiTheme === item.id
+                      ? 'border-fuchsia-300/40 bg-fuchsia-300/20 text-white'
+                      : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="mt-4 flex items-center justify-between text-sm font-semibold text-slate-100">
             <span>Music theme</span>
             <select
               value={audioSettings.musicTheme}
@@ -1086,14 +1118,14 @@ function App() {
                 setMusicTheme(event.target.value === 'calm' ? 'calm' : 'arcade')
                 void ensureAudioReady()
               }}
-              className="rounded-lg border border-violet-300 bg-white px-2 py-1 text-sm"
+              className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-sm text-slate-100"
             >
               <option value="arcade">Arcade</option>
               <option value="calm">Calm</option>
             </select>
           </label>
 
-          <label className="mt-4 flex items-center justify-between text-sm font-semibold text-fuchsia-900">
+          <label className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100">
             <span>Background music</span>
             <input
               type="checkbox"
@@ -1112,9 +1144,9 @@ function App() {
             onChange={(event) => setMusicVolume(Number(event.target.value) / 100)}
             className="mt-2 w-full"
           />
-          <p className="mt-1 text-xs text-fuchsia-700">Music volume: {Math.round(audioSettings.musicVolume * 100)}%</p>
+          <p className="mt-1 text-xs text-slate-300">Music volume: {Math.round(audioSettings.musicVolume * 100)}%</p>
 
-          <label className="mt-4 flex items-center justify-between text-sm font-semibold text-fuchsia-900">
+          <label className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100">
             <span>Sound effects</span>
             <input
               type="checkbox"
@@ -1133,22 +1165,22 @@ function App() {
             onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
             className="mt-2 w-full"
           />
-          <p className="mt-1 text-xs text-fuchsia-700">SFX volume: {Math.round(audioSettings.sfxVolume * 100)}%</p>
+          <p className="mt-1 text-xs text-slate-300">SFX volume: {Math.round(audioSettings.sfxVolume * 100)}%</p>
         </section>
       )}
 
       {showLeaveConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-fuchsia-200 bg-white p-5 shadow-2xl">
-            <h3 className="text-xl font-extrabold text-fuchsia-900">Leave Room?</h3>
-            <p className="mt-2 text-sm text-fuchsia-800/90">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-md rounded-3xl p-5">
+            <h3 className="text-xl font-extrabold text-white">Leave room?</h3>
+            <p className="mt-2 text-sm text-slate-300">
               If you leave now, the match will be paused and your opponent can decide to wait for you or leave too.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowLeaveConfirmModal(false)}
-                className="rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-900 hover:bg-violet-100"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Cancel
               </button>
@@ -1157,7 +1189,7 @@ function App() {
                 onClick={() => {
                   void leaveRoom()
                 }}
-                className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-500"
+                className="rounded-lg bg-rose-500 px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110"
               >
                 Confirm Leave
               </button>
@@ -1167,20 +1199,20 @@ function App() {
       )}
 
       {shouldShowDisconnectPauseModal && room?.pausedByDisconnect?.playerId && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-amber-200 bg-white p-5 shadow-2xl">
-            <h3 className="text-xl font-extrabold text-amber-900">Opponent Disconnected</h3>
-            <p className="mt-2 text-sm text-amber-900/90">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-md rounded-3xl p-5">
+            <h3 className="text-xl font-extrabold text-amber-100">Opponent disconnected</h3>
+            <p className="mt-2 text-sm text-amber-100/90">
               {room.profiles[room.pausedByDisconnect.playerId]?.username ?? 'Your opponent'} left the match. The game is paused.
             </p>
-            <p className="mt-1 text-sm text-amber-900/90">Do you want to keep waiting for them to rejoin, or leave too?</p>
+            <p className="mt-1 text-sm text-amber-100/90">Do you want to keep waiting for them to rejoin, or leave too?</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => {
                   void onKeepWaitingForOpponent()
                 }}
-                className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-500"
+                className="rounded-lg bg-amber-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110"
               >
                 Keep Waiting
               </button>
@@ -1189,7 +1221,7 @@ function App() {
                 onClick={() => {
                   void leaveRoom()
                 }}
-                className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-500"
+                className="rounded-lg bg-rose-500 px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110"
               >
                 Leave Too
               </button>
@@ -1199,7 +1231,7 @@ function App() {
       )}
 
       {showHotseatPassOverlay && room && hotseatPendingPlayerId && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-fuchsia-950 p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-xl">
           <button
             type="button"
             onClick={() => {
@@ -1210,49 +1242,49 @@ function App() {
               setGuessInput('')
               setHotseatRevealedPlayerId(hotseatPendingPlayerId)
             }}
-            className="w-full max-w-xl rounded-3xl border border-fuchsia-200 bg-white px-6 py-8 text-center shadow-2xl"
+            className="glass-panel-strong w-full max-w-xl rounded-3xl px-6 py-8 text-center"
           >
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-fuchsia-700">Same-Phone Turn</p>
-            <h3 className="mt-2 text-2xl font-black text-fuchsia-950">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-fuchsia-300">Same-phone turn</p>
+            <h3 className="mt-2 text-2xl font-black text-white">
               {room.profiles[hotseatPendingPlayerId]?.avatar} {room.profiles[hotseatPendingPlayerId]?.username} plays now
             </h3>
-            <p className="mt-2 text-sm text-fuchsia-800/90">Pass the phone, then tap to reveal this player's view.</p>
-            <p className="mt-5 rounded-xl bg-fuchsia-100 px-4 py-2 text-sm font-semibold text-fuchsia-900">Tap To Continue</p>
+            <p className="mt-2 text-sm text-slate-300">Pass the phone, then tap to reveal this player's view.</p>
+            <p className="mt-5 rounded-xl bg-fuchsia-300/20 px-4 py-2 text-sm font-semibold text-fuchsia-100">Tap to continue</p>
           </button>
         </div>
       )}
 
       {waitingRoomP2SetupId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-fuchsia-200 bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-md rounded-3xl p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-xl font-extrabold text-fuchsia-900">Same-Phone Player Setup</h3>
+              <h3 className="text-xl font-extrabold text-white">Same-phone player setup</h3>
               <button
                 type="button"
                 onClick={() => setWaitingRoomP2SetupId(null)}
-                className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-sm font-semibold text-fuchsia-800 hover:bg-fuchsia-100"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Close
               </button>
             </div>
 
-            <label className="block text-sm font-semibold text-fuchsia-900">Player 2 name</label>
+            <label className="block text-sm font-semibold text-slate-100">Player 2 name</label>
             <input
               value={waitingRoomP2Name}
               onChange={(event) => setWaitingRoomP2Name(event.target.value)}
               maxLength={24}
               placeholder="Enter Player 2 name"
-              className="mt-1 w-full rounded-xl border border-violet-300 bg-white px-3 py-2"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950/55 px-3 py-2 text-slate-100 placeholder:text-slate-500"
             />
 
-            <label className="mt-4 block text-sm font-semibold text-fuchsia-900">Player 2 avatar</label>
+            <label className="mt-4 block text-sm font-semibold text-slate-100">Player 2 avatar</label>
             <div className="mt-2 grid grid-cols-6 gap-2">
               {['😀', '😎', '🤖', '🧠', '🦊', '🐼', '🐯', '🐸', '🦄', '🐙', '🚀', '⚡'].map((icon) => (
                 <button
                   type="button"
                   key={icon}
                   onClick={() => setWaitingRoomP2Avatar(icon)}
-                  className={`rounded-lg border px-2 py-2 text-lg transition ${waitingRoomP2Avatar === icon ? 'border-fuchsia-500 bg-fuchsia-100' : 'border-violet-200 bg-violet-50 hover:bg-violet-100'}`}
+                  className={`rounded-lg border px-2 py-2 text-lg transition ${waitingRoomP2Avatar === icon ? 'border-fuchsia-300/50 bg-fuchsia-300/15' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
                 >
                   {icon}
                 </button>
@@ -1263,7 +1295,7 @@ function App() {
               onClick={() => {
                 void onConfirmWaitingRoomP2Setup()
               }}
-              className="mt-5 w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-2 font-semibold text-white hover:brightness-110"
+              className="mt-5 w-full rounded-xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 font-semibold text-slate-950 transition hover:brightness-110"
             >
               Start Same-Phone Match
             </button>

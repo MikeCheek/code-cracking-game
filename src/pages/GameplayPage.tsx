@@ -72,22 +72,22 @@ function CodeCells({ value, length, tones, onCellClick, selectedIndex }: CodeCel
         const isSelected = selectedIndex === index
         const toneClass =
           tone === 'exact'
-            ? 'border-emerald-400 bg-emerald-100 text-emerald-900'
+            ? 'border-emerald-300/70 bg-emerald-300/20 text-emerald-100'
             : tone === 'present'
-              ? 'border-amber-400 bg-amber-100 text-amber-900'
+              ? 'border-amber-300/70 bg-amber-300/20 text-amber-100'
               : tone === 'absent'
-                ? 'border-slate-300 bg-slate-100 text-slate-600'
+                ? 'border-white/12 bg-white/6 text-slate-400'
                 : tone === 'neutral'
-                  ? 'border-violet-300 bg-violet-100 text-violet-900'
-                  : 'border-violet-200 bg-white text-violet-400'
+                  ? 'border-fuchsia-300/40 bg-fuchsia-300/15 text-fuchsia-100'
+                  : 'border-white/12 bg-slate-950/40 text-slate-500'
 
         return (
           <button
             key={index}
             type="button"
             onClick={() => onCellClick?.(index)}
-            className={`flex h-11 items-center justify-center rounded-lg border text-lg font-black transition-all duration-300 ${
-              isSelected ? 'ring-2 ring-fuchsia-500 ring-offset-2 scale-110' : 'hover:scale-105'
+            className={`flex h-12 items-center justify-center rounded-xl border text-lg font-black transition-all duration-300 sm:h-11 ${
+              isSelected ? 'ring-2 ring-fuchsia-300 ring-offset-2 ring-offset-slate-950 scale-105' : 'hover:scale-105'
             } ${toneClass} ${onCellClick ? 'cursor-pointer hover:brightness-110' : ''}`}
             style={{
               animation: digit ? `popBounce 0.3s ease-out ${index * 30}ms both` : undefined,
@@ -138,7 +138,7 @@ function getGuessCellHints(secret: string, guess: string, length: number): CellT
 
 function NumericPad({ value, maxLength, onChange, onDigitClick, onSubmit, submitLabel }: NumericPadProps) {
   return (
-    <div className="mt-3 animate-slide-in-up rounded-xl border border-violet-200 bg-white p-3 shadow-lg transition-all duration-300">
+    <div className="mt-3 animate-slide-in-up rounded-2xl border border-white/10 bg-slate-950/45 p-3 shadow-lg transition-all duration-300">
       <div className="grid grid-cols-5 gap-2">
         {DIGIT_KEYS.map((digit, idx) => (
           <button
@@ -150,7 +150,7 @@ function NumericPad({ value, maxLength, onChange, onDigitClick, onSubmit, submit
                 onChange(`${value}${digit}`)
               }
             }}
-            className="transform rounded-lg bg-violet-100 px-2 py-2 text-sm font-bold text-violet-900 transition-all duration-200 hover:scale-110 hover:bg-violet-200 active:scale-95"
+            className="transform rounded-lg border border-white/10 bg-white/5 px-2 py-3 text-base font-bold text-slate-100 transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95"
             style={{
               animation: `slideInUp 0.3s ease-out ${idx * 20}ms both`,
             }}
@@ -163,14 +163,14 @@ function NumericPad({ value, maxLength, onChange, onDigitClick, onSubmit, submit
         <button
           type="button"
           onClick={() => onChange(value.slice(0, -1))}
-          className="transform rounded-lg border border-violet-300 bg-violet-50 px-2 py-2 text-xs font-semibold text-violet-900 transition-all duration-200 hover:scale-105 hover:bg-violet-100 active:scale-95"
+          className="transform rounded-lg border border-white/10 bg-white/5 px-2 py-2.5 text-xs font-semibold text-slate-100 transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95"
         >
           Backspace
         </button>
         <button
           type="button"
           onClick={() => onChange('')}
-          className="transform rounded-lg border border-violet-300 bg-violet-50 px-2 py-2 text-xs font-semibold text-violet-900 transition-all duration-200 hover:scale-105 hover:bg-violet-100 active:scale-95"
+          className="transform rounded-lg border border-white/10 bg-white/5 px-2 py-2.5 text-xs font-semibold text-slate-100 transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95"
         >
           Clear
         </button>
@@ -178,7 +178,7 @@ function NumericPad({ value, maxLength, onChange, onDigitClick, onSubmit, submit
       <button
         type="button"
         onClick={onSubmit}
-        className="mt-3 w-full transform rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 px-3 py-2 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:brightness-110 active:scale-95 shadow-md hover:shadow-lg"
+        className="mt-3 w-full transform rounded-lg bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-3 py-3 text-sm font-bold text-slate-950 transition-all duration-300 hover:scale-[1.01] hover:brightness-110 active:scale-95 shadow-md hover:shadow-lg"
       >
         {submitLabel}
       </button>
@@ -284,18 +284,18 @@ export function GameplayPage({
 
   return (
     <section className="space-y-5">
-      <article className={`animate-slide-in-down rounded-3xl border border-violet-200 bg-white shadow-xl transition-all duration-500 ${isPlaying ? 'p-4' : 'p-6'}`}>
+      <article className={`glass-panel-strong animate-slide-in-down rounded-[2rem] shadow-xl transition-all duration-500 ${isPlaying ? 'p-4 md:p-5' : 'p-6'}`}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="animate-fade-in">
-            <p className="text-xs uppercase tracking-[0.2em] text-violet-700">Room #{room.id.slice(0, 6)}</p>
-            <p className="text-sm font-semibold text-fuchsia-900">{room.roomName}</p>
-            <h2 className={`transform transition-all duration-300 ${isPlaying ? 'text-xl' : 'text-2xl'} font-bold text-fuchsia-950`}>{room.status.toUpperCase()}</h2>
-            <p className={`transition-colors duration-300 ${isPlaying ? 'text-xs' : 'text-sm'} text-fuchsia-800/80`}>{room.message ?? 'Game in progress'}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-fuchsia-300">Room #{room.id.slice(0, 6)}</p>
+            <p className="text-sm font-semibold text-slate-100">{room.roomName}</p>
+            <h2 className={`transform transition-all duration-300 ${isPlaying ? 'text-xl' : 'text-2xl'} font-bold text-white`}>{room.status.toUpperCase()}</h2>
+            <p className={`transition-colors duration-300 ${isPlaying ? 'text-xs' : 'text-sm'} text-slate-300`}>{room.message ?? 'Game in progress'}</p>
           </div>
           <div className="flex gap-2 sm:grid-cols-1">
             <button
               onClick={() => setShowSettingsModal(true)}
-              className="transform rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-900 transition-all duration-200 hover:scale-105 hover:bg-violet-100 active:scale-95"
+              className="transform rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95"
               title="Room settings"
             >
               ⚙️ Settings
@@ -305,48 +305,48 @@ export function GameplayPage({
 
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           <div
-            className={`animate-slide-in-left transform rounded-xl p-2.5 transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+            className={`animate-slide-in-left transform rounded-2xl p-3 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] ${
               isMyTurnCard
-                ? 'border border-emerald-400 bg-emerald-100 ring-2 ring-emerald-300'
-                : 'bg-violet-50'
+                ? 'border border-emerald-300/45 bg-emerald-300/15 ring-2 ring-emerald-300/30'
+                : 'border border-white/8 bg-white/5'
             }`}
           >
-            <p className="font-semibold">You: {myProfile?.avatar} {myProfile?.username}</p>
-            <p className={`${isPlaying ? 'text-xs' : 'text-sm'} text-fuchsia-800/80`}>
+            <p className="font-semibold text-white">You: {myProfile?.avatar} {myProfile?.username}</p>
+            <p className={`${isPlaying ? 'text-xs' : 'text-sm'} text-slate-300`}>
               {showPenaltyCounters
                 ? `Penalties: ${room.penalties[user.id] ?? 0}/${MAX_PENALTIES}`
                 : 'Penalties activate during battle.'}
             </p>
-            {isMyTurnCard && <p className="mt-1 text-xs font-bold text-emerald-900">Your turn</p>}
+            {isMyTurnCard && <p className="mt-1 text-xs font-bold text-emerald-100">Your turn</p>}
             {mySecret && (
               <div>
-                <p className={`${isPlaying ? 'text-xs' : 'text-sm'} mt-1 text-fuchsia-900`}>Your code</p>
+                <p className={`${isPlaying ? 'text-xs' : 'text-sm'} mt-1 text-slate-100`}>Your code</p>
                 <CodeCells value={mySecret} length={room.settings.codeLength} />
               </div>
             )}
           </div>
           <div
-            className={`animate-slide-in-right transform rounded-xl p-2.5 transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+            className={`animate-slide-in-right transform rounded-2xl p-3 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] ${
               isOpponentTurnCard
-                ? 'border border-emerald-400 bg-emerald-100 ring-2 ring-emerald-300'
-                : 'bg-violet-50'
+                ? 'border border-emerald-300/45 bg-emerald-300/15 ring-2 ring-emerald-300/30'
+                : 'border border-white/8 bg-white/5'
             }`}
           >
-            <p className="font-semibold">Opponent: {opponentProfile?.avatar ?? '❔'} {opponentProfile?.username ?? 'Waiting...'}</p>
-            <p className={`${isPlaying ? 'text-xs' : 'text-sm'} text-fuchsia-800/80`}>
+            <p className="font-semibold text-white">Opponent: {opponentProfile?.avatar ?? '❔'} {opponentProfile?.username ?? 'Waiting...'}</p>
+            <p className={`${isPlaying ? 'text-xs' : 'text-sm'} text-slate-300`}>
               {showPenaltyCounters
                 ? `Penalties: ${opponentProfile ? room.penalties[opponentProfile.id] ?? 0 : 0}/${MAX_PENALTIES}`
                 : 'Penalties activate during battle.'}
             </p>
-            {isOpponentTurnCard && <p className="mt-1 text-xs font-bold text-emerald-900">Opponent turn</p>}
+            {isOpponentTurnCard && <p className="mt-1 text-xs font-bold text-emerald-100">Opponent turn</p>}
           </div>
         </div>
       </article>
 
       {room.status === 'rps' && (
-        <article className="animate-slide-in-up rounded-3xl border border-violet-200 bg-white p-6 shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold text-fuchsia-900">Rock Paper Scissors</h3>
-          <p className="mt-1 text-sm text-fuchsia-800/80">First win decides who starts. Tie repeats.</p>
+        <article className="glass-panel animate-slide-in-up rounded-3xl p-6 shadow-xl transition-all duration-300">
+          <h3 className="text-lg font-bold text-white">Rock Paper Scissors</h3>
+          <p className="mt-1 text-sm text-slate-300">First win starts the match.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {RPS_ITEMS.map((item, idx) => (
               <button
@@ -354,7 +354,9 @@ export function GameplayPage({
                 onClick={() => onRpsChoice(item.value)}
                 title={item.label}
                 className={`transform rounded-xl px-4 py-2 font-semibold transition-all duration-200 active:scale-95 ${
-                  rpsChoice === item.value ? 'scale-110 bg-fuchsia-600 text-white shadow-lg' : 'bg-violet-100 hover:scale-110 hover:bg-violet-200'
+                  rpsChoice === item.value
+                    ? 'scale-105 bg-gradient-to-r from-fuchsia-300 to-violet-400 text-slate-950 shadow-lg'
+                    : 'border border-white/10 bg-white/5 text-slate-100 hover:scale-105 hover:bg-white/10'
                 }`}
                 style={{
                   animation: `scaleIn 0.3s ease-out ${idx * 50}ms both`,
@@ -369,21 +371,21 @@ export function GameplayPage({
       )}
 
       {room.status === 'secrets' && (
-        <article className="animate-slide-in-up rounded-3xl border border-violet-200 bg-white p-6 shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold text-fuchsia-900">Set your secret combination</h3>
-          <p className="mt-1 text-sm text-fuchsia-800/80">
+        <article className="glass-panel animate-slide-in-up rounded-3xl p-6 shadow-xl transition-all duration-300">
+          <h3 className="text-lg font-bold text-white">Set your secret combination</h3>
+          <p className="mt-1 text-sm text-slate-300">
             Length: {room.settings.codeLength} • {room.settings.allowDuplicates ? 'duplicates allowed' : 'no duplicates'}
           </p>
           
           {secretLocked ? (
             <div className="mt-4 animate-scale-in">
-              <div className="transform rounded-xl border border-emerald-200 bg-emerald-50 p-4 transition-all duration-300 hover:shadow-lg">
+              <div className="transform rounded-xl border border-emerald-300/30 bg-emerald-300/10 p-4 transition-all duration-300 hover:shadow-lg">
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="font-semibold text-emerald-900">🔐 Code Locked</p>
+                  <p className="font-semibold text-emerald-100">🔐 Code Locked</p>
                   <button
                     type="button"
                     onClick={onUnlockSecret}
-                    className="transform rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:scale-105 hover:bg-emerald-700 active:scale-95"
+                    className="transform rounded-lg border border-emerald-300/30 bg-emerald-300/15 px-3 py-1.5 text-xs font-semibold text-emerald-50 transition-all duration-200 hover:scale-105 hover:bg-emerald-300/20 active:scale-95"
                   >
                     Unlock Code
                   </button>
@@ -392,12 +394,12 @@ export function GameplayPage({
                   value={secretInput}
                   length={room.settings.codeLength}
                 />
-                <p className="mt-3 text-xs text-emerald-800">Your code is locked and hidden from your opponent. You can unlock it to make changes.</p>
+                <p className="mt-3 text-xs text-emerald-100/90">Your code is locked and hidden from your opponent. You can unlock it to make changes.</p>
               </div>
             </div>
           ) : (
             <div className="mt-4 animate-fade-in">
-              <p className="mb-2 text-xs text-fuchsia-700">Tap a cell to select it, then tap a digit to fill it.</p>
+              <p className="mb-2 text-xs text-slate-300">Tap a cell to select it, then tap a digit to fill it.</p>
               <CodeCells
                 value={secretInput}
                 length={room.settings.codeLength}
@@ -418,12 +420,12 @@ export function GameplayPage({
       )}
 
       {room.status === 'playing' && (
-        <article className="animate-slide-in-up rounded-3xl border border-violet-200 bg-white p-6 shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold text-fuchsia-900">Battle Phase</h3>
+        <article className="glass-panel animate-slide-in-up rounded-3xl p-6 shadow-xl transition-all duration-300">
+          <h3 className="text-lg font-bold text-white">Battle Phase</h3>
 
           {myTurn && !room.pendingGuess && (
             <div className="mt-4 animate-slide-in-left">
-              <p className="mb-2 text-xs text-fuchsia-700">Tap a cell to select it, then tap a digit to fill it.</p>
+              <p className="mb-2 text-xs text-slate-300">Tap a cell to select it, then tap a digit to fill it.</p>
               <CodeCells
                 value={guessInput}
                 length={room.settings.codeLength}
@@ -442,21 +444,21 @@ export function GameplayPage({
           )}
 
           {room.pendingGuess && pendingForResponder && (
-            <div className="mt-4 rounded-xl border border-fuchsia-200 bg-fuchsia-50 p-4">
-              <p className="font-medium">Opponent guess review</p>
+            <div className="mt-4 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 p-4">
+              <p className="font-medium text-fuchsia-100">Opponent guess</p>
               <CodeCells
                 value={room.pendingGuess.guess}
                 length={room.settings.codeLength}
                 tones={pendingGuessHints}
               />
               {mySecret && (
-                <p className="mt-2 text-xs text-fuchsia-900">
+                <p className="mt-2 text-xs text-fuchsia-100/90">
                   Green = right digit in right spot, yellow = digit exists in another spot, gray = not in your code.
                 </p>
               )}
               <div className="mt-4 grid gap-4 md:max-w-xs">
                 <div>
-                  <p className="mb-2 text-sm font-semibold text-fuchsia-900">Bulls</p>
+                  <p className="mb-2 text-sm font-semibold text-slate-100">Bulls</p>
                   <div className="flex flex-wrap gap-2">
                     {Array.from({ length: room.settings.codeLength + 1 }).map((_, i) => {
                       const disabled = isButtonDisabled(true, i)
@@ -466,12 +468,12 @@ export function GameplayPage({
                           type="button"
                           onClick={() => !disabled && onClaimedBullsChange(i)}
                           disabled={disabled}
-                          className={`h-9 w-9 rounded-lg border font-bold transition ${
+                          className={`h-11 w-11 rounded-lg border font-bold transition ${
                             disabled
-                              ? 'cursor-not-allowed border-slate-300 bg-slate-100 text-slate-600'
+                              ? 'cursor-not-allowed border-white/10 bg-white/5 text-slate-500'
                               : claimedBulls === i
-                                ? 'border-emerald-400 bg-emerald-100 text-emerald-900 shadow-md'
-                                : 'border-violet-300 bg-violet-100 text-violet-900 hover:bg-violet-200'
+                                ? 'border-emerald-300/60 bg-emerald-300/20 text-emerald-100 shadow-md'
+                                : 'border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
                           }`}
                         >
                           {i}
@@ -481,7 +483,7 @@ export function GameplayPage({
                   </div>
                 </div>
                 <div>
-                  <p className="mb-2 text-sm font-semibold text-fuchsia-900">Cows</p>
+                  <p className="mb-2 text-sm font-semibold text-slate-100">Cows</p>
                   <div className="flex flex-wrap gap-2">
                     {Array.from({ length: room.settings.codeLength + 1 }).map((_, i) => {
                       const disabled = isButtonDisabled(false, i)
@@ -491,12 +493,12 @@ export function GameplayPage({
                           type="button"
                           onClick={() => !disabled && onClaimedCowsChange(i)}
                           disabled={disabled}
-                          className={`h-9 w-9 rounded-lg border font-bold transition ${
+                          className={`h-11 w-11 rounded-lg border font-bold transition ${
                             disabled
-                              ? 'cursor-not-allowed border-slate-300 bg-slate-100 text-slate-600'
+                              ? 'cursor-not-allowed border-white/10 bg-white/5 text-slate-500'
                               : claimedCows === i
-                                ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-md'
-                                : 'border-violet-300 bg-violet-100 text-violet-900 hover:bg-violet-200'
+                                ? 'border-amber-300/60 bg-amber-300/20 text-amber-100 shadow-md'
+                                : 'border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
                           }`}
                         >
                           {i}
@@ -508,34 +510,49 @@ export function GameplayPage({
               </div>
               <button
                 onClick={onAnswerGuess}
-                className="mt-3 rounded-lg bg-gradient-to-r from-fuchsia-600 to-violet-500 px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
+                className="mt-3 rounded-lg bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:brightness-110"
               >
                 Submit Answer
               </button>
             </div>
           )}
 
-          <div className="mt-5 overflow-x-auto">
+          <div className="mt-5 space-y-2 md:hidden">
+            {sortedHistory.map((item) => (
+              <article key={item.id} className="rounded-xl border border-white/8 bg-slate-950/45 p-3 text-sm text-slate-100">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">Turn {item.turnNumber}</span>
+                  <span className="font-mono text-fuchsia-200">{item.guess}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-300">{room.profiles[item.fromPlayerId]?.username}</p>
+                <p className="mt-2 text-xs text-slate-300">
+                  Claimed {item.claimedBulls}/{item.claimedCows} • Actual {item.actualBulls}/{item.actualCows} • {item.lieDetected ? 'Lie' : 'Clean'}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-white/8 bg-slate-950/45 md:block">
             <table className="min-w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-violet-100 text-left">
-                  <th className="px-3 py-2">Turn</th>
-                  <th className="px-3 py-2">By</th>
-                  <th className="px-3 py-2">Guess</th>
-                  <th className="px-3 py-2">Claimed</th>
-                  <th className="px-3 py-2">Actual</th>
-                  <th className="px-3 py-2">Lie?</th>
+                <tr className="text-left text-slate-200">
+                  <th className="px-3 py-3">Turn</th>
+                  <th className="px-3 py-3">By</th>
+                  <th className="px-3 py-3">Guess</th>
+                  <th className="px-3 py-3">Claimed</th>
+                  <th className="px-3 py-3">Actual</th>
+                  <th className="px-3 py-3">Lie?</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedHistory.map((item) => (
-                  <tr key={item.id} className="border-b border-violet-100">
-                    <td className="px-3 py-2">{item.turnNumber}</td>
-                    <td className="px-3 py-2">{room.profiles[item.fromPlayerId]?.username}</td>
-                    <td className="px-3 py-2 font-mono">{item.guess}</td>
-                    <td className="px-3 py-2">{item.claimedBulls} / {item.claimedCows}</td>
-                    <td className="px-3 py-2">{item.actualBulls} / {item.actualCows}</td>
-                    <td className="px-3 py-2">{item.lieDetected ? 'Yes' : 'No'}</td>
+                  <tr key={item.id} className="border-t border-white/8 text-slate-100">
+                    <td className="px-3 py-2.5">{item.turnNumber}</td>
+                    <td className="px-3 py-2.5">{room.profiles[item.fromPlayerId]?.username}</td>
+                    <td className="px-3 py-2.5 font-mono text-fuchsia-100">{item.guess}</td>
+                    <td className="px-3 py-2.5">{item.claimedBulls} / {item.claimedCows}</td>
+                    <td className="px-3 py-2.5">{item.actualBulls} / {item.actualCows}</td>
+                    <td className="px-3 py-2.5">{item.lieDetected ? 'Yes' : 'No'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -545,11 +562,11 @@ export function GameplayPage({
       )}
 
       {room.status === 'finished' && (
-        <article className="animate-slide-in-up rounded-3xl border border-emerald-300 bg-emerald-50 p-6 shadow-xl transition-all duration-300">
-          <h3 className="animate-float text-2xl font-bold text-emerald-900">🎉 Game Over</h3>
+        <article className="animate-slide-in-up rounded-3xl border border-emerald-300/30 bg-emerald-300/10 p-6 shadow-xl transition-all duration-300">
+          <h3 className="animate-float text-2xl font-bold text-emerald-100">🎉 Game Over</h3>
           
-          <div className="mt-4 animate-scale-in transform rounded-xl border border-emerald-200 bg-white p-4 transition-all duration-300 hover:shadow-lg hover:scale-105">
-            <p className="text-lg font-bold text-emerald-900">
+          <div className="mt-4 animate-scale-in transform rounded-xl border border-emerald-300/30 bg-slate-950/45 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105">
+            <p className="text-lg font-bold text-emerald-100">
               🏆 Winner: {room.profiles[room.winnerId ?? '']?.username ?? 'Unknown'}
             </p>
           </div>
@@ -557,20 +574,20 @@ export function GameplayPage({
           {(() => {
             const { turnsTaken, totalBulls, totalCows } = calculateGameScore()
             return (
-              <div className="mt-4 animate-fade-in space-y-2 rounded-xl bg-white p-4">
-                <h4 className="font-semibold text-emerald-900">Game Stats</h4>
+              <div className="mt-4 animate-fade-in space-y-2 rounded-xl border border-white/10 bg-slate-950/45 p-4">
+                <h4 className="font-semibold text-emerald-100">Game Stats</h4>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="transform rounded-lg bg-blue-50 p-3 text-center transition-all duration-300 hover:shadow-lg hover:scale-110">
-                    <p className="text-xs text-blue-700">Turns</p>
-                    <p className="text-2xl font-bold text-blue-900">{turnsTaken}</p>
+                  <div className="transform rounded-lg border border-sky-300/20 bg-sky-300/10 p-3 text-center transition-all duration-300 hover:shadow-lg hover:scale-105">
+                    <p className="text-xs text-sky-100">Turns</p>
+                    <p className="text-2xl font-bold text-sky-50">{turnsTaken}</p>
                   </div>
-                  <div className="transform rounded-lg bg-green-50 p-3 text-center transition-all duration-300 hover:shadow-lg hover:scale-110">
-                    <p className="text-xs text-green-700">Bulls</p>
-                    <p className="text-2xl font-bold text-green-900">{totalBulls}</p>
+                  <div className="transform rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-3 text-center transition-all duration-300 hover:shadow-lg hover:scale-105">
+                    <p className="text-xs text-emerald-100">Bulls</p>
+                    <p className="text-2xl font-bold text-emerald-50">{totalBulls}</p>
                   </div>
-                  <div className="transform rounded-lg bg-yellow-50 p-3 text-center transition-all duration-300 hover:shadow-lg hover:scale-110">
-                    <p className="text-xs text-yellow-700">Cows</p>
-                    <p className="text-2xl font-bold text-yellow-900">{totalCows}</p>
+                  <div className="transform rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-center transition-all duration-300 hover:shadow-lg hover:scale-105">
+                    <p className="text-xs text-amber-100">Cows</p>
+                    <p className="text-2xl font-bold text-amber-50">{totalCows}</p>
                   </div>
                 </div>
               </div>
@@ -579,7 +596,7 @@ export function GameplayPage({
 
           <button
             onClick={onLeaveRoom}
-            className="transform mt-4 w-full rounded-xl bg-fuchsia-700 px-4 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:bg-fuchsia-600 active:scale-95 shadow-md hover:shadow-lg"
+            className="transform mt-4 w-full rounded-xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 font-semibold text-slate-950 transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 shadow-md hover:shadow-lg"
           >
             Back To Rooms
           </button>
@@ -588,19 +605,19 @@ export function GameplayPage({
 
       {showSettingsModal && (
         <div
-          className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm transition-all duration-300"
+          className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl transition-all duration-300"
           onClick={() => setShowSettingsModal(false)}
         >
           <div
-            className="animate-scale-in w-full max-w-sm transform rounded-3xl border border-fuchsia-200 bg-white p-6 shadow-2xl transition-all duration-300"
+            className="glass-panel-strong animate-scale-in w-full max-w-sm transform rounded-3xl p-6 transition-all duration-300"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-xl font-extrabold text-fuchsia-900">Room Settings</h3>
+              <h3 className="text-xl font-extrabold text-white">Room Settings</h3>
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
-                className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-sm font-semibold text-fuchsia-800 hover:bg-fuchsia-100"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 ✕
               </button>
@@ -613,7 +630,7 @@ export function GameplayPage({
                   onCopyInvite()
                   setShowSettingsModal(false)
                 }}
-                className="w-full rounded-lg border border-violet-300 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900 hover:bg-violet-100"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 🔗 Smart Share Invite
               </button>
@@ -625,7 +642,7 @@ export function GameplayPage({
                     onShareTelegram()
                     setShowSettingsModal(false)
                   }}
-                  className="w-full rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+                  className="w-full rounded-xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm font-semibold text-sky-100 transition hover:bg-sky-400/15"
                 >
                   ✈️ Share On Telegram
                 </button>
@@ -638,7 +655,7 @@ export function GameplayPage({
                     onShareWhatsApp()
                     setShowSettingsModal(false)
                   }}
-                  className="w-full rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+                  className="w-full rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
                 >
                   💬 Share On WhatsApp
                 </button>
@@ -651,7 +668,7 @@ export function GameplayPage({
                     onDeleteRoom()
                     setShowSettingsModal(false)
                   }}
-                  className="w-full rounded-lg bg-fuchsia-700 px-4 py-3 text-sm font-semibold text-white hover:bg-fuchsia-600"
+                  className="w-full rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
                 >
                   🗑️ Delete Room
                 </button>
@@ -663,7 +680,7 @@ export function GameplayPage({
                   onLeaveRoom()
                   setShowSettingsModal(false)
                 }}
-                className="w-full rounded-lg bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-500"
+                className="w-full rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/15"
               >
                 🚪 Leave Room
               </button>

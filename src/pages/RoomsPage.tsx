@@ -72,135 +72,193 @@ export function RoomsPage({
     setSamePhoneGuestAvatar(currentUserAvatar === '😀' ? '😎' : '😀')
   }
 
+  const roomRuleLabel = (entry: LobbyRoomSummary) => {
+    const parts = [
+      `${entry.codeLength} digits`,
+      entry.allowDuplicates ? 'duplicates on' : 'unique digits',
+      entry.isPrivate ? 'private' : 'public',
+    ]
+    return parts.join(' · ')
+  }
+
   return (
-    <section className="grid gap-6 lg:grid-cols-2">
-      <article className="animate-slide-in-left rounded-3xl border border-violet-200 bg-white p-6 shadow-xl transition-all duration-300">
-        <h2 className="text-2xl font-black text-fuchsia-900">Game Rooms</h2>
-        <div className="animate-fade-in rounded-xl border border-violet-200 bg-violet-50 p-4 transition-all duration-300">
-          <p className="text-sm text-fuchsia-800/90">Create a new room with custom code rules and optional privacy.</p>
+    <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <article className="glass-panel-strong rounded-[2rem] p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.34em] text-fuchsia-300">Lobby</p>
+            <h2 className="mt-2 text-3xl font-bold text-white md:text-4xl">Room browser</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+              Jump into an open match, spin up a fresh room, or host a same-phone session in seconds.
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="transform mt-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95"
+            className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:brightness-110"
           >
-            Create Room
+            Create room
           </button>
         </div>
 
-        <h3 className="mt-4 text-lg font-extrabold text-fuchsia-900">Join Room</h3>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="glass-panel rounded-[1.25rem] p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Open rooms</p>
+            <p className="mt-2 text-3xl font-bold text-white">{joinableRooms.length}</p>
+          </div>
+          <div className="glass-panel rounded-[1.25rem] p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">My hosted</p>
+            <p className="mt-2 text-3xl font-bold text-white">{myHostedRooms.length}</p>
+          </div>
+          <div className="glass-panel rounded-[1.25rem] p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Current avatar</p>
+            <p className="mt-2 text-3xl">{currentUserAvatar}</p>
+          </div>
+        </div>
 
-        <ul className="mt-3 space-y-3">
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-white">Join instantly</h3>
+            <span className="text-sm text-slate-400">Public rooms only</span>
+          </div>
+
           {joinableRooms.length === 0 && (
-            <li className="animate-slide-in-left rounded-xl bg-violet-50 p-3 text-sm text-violet-700">No open rooms yet.</li>
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/5 px-4 py-5 text-sm text-slate-300">
+              No open rooms are live right now. Create one and be the first match on the board.
+            </div>
           )}
-          {joinableRooms.map((entry, idx) => (
-            <li key={entry.id} className="transform animate-slide-in-left rounded-xl border border-violet-200 p-3 transition-all duration-300 hover:scale-105 hover:shadow-lg" style={{
-              animation: `slideInLeft 0.5s ease-out ${idx * 100}ms both`,
-            }}>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-fuchsia-900">{entry.roomName}</p>
-                  <p className="text-xs text-fuchsia-800/80">
-                    Host: {entry.hostName} •
-                    {' '}
-                    {entry.codeLength} digits • {entry.allowDuplicates ? 'duplicates allowed' : 'unique digits'} •{' '}
-                    {entry.isPrivate ? 'private' : 'public'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    void onRequestJoin(entry.id, entry.isPrivate)
-                  }}
-                  className="transform rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 px-3 py-1.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-110 hover:brightness-110 active:scale-95"
-                >
-                  Join
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
 
-        <h3 className="mt-5 text-lg font-extrabold text-fuchsia-900">My Hosted Rooms</h3>
-        <ul className="mt-3 space-y-3">
-          {myHostedRooms.length === 0 && (
-            <li className="animate-slide-in-left rounded-xl bg-violet-50 p-3 text-sm text-violet-700">You have no active hosted rooms.</li>
-          )}
-          {myHostedRooms.map((entry, idx) => (
-            <li key={entry.id} className="transform animate-slide-in-left rounded-xl border border-violet-200 p-3 transition-all duration-300 hover:scale-105 hover:shadow-lg" style={{
-              animation: `slideInLeft 0.5s ease-out ${idx * 100}ms both`,
-            }}>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-fuchsia-900">{entry.roomName}</p>
-                  <p className="text-xs text-fuchsia-800/80">
-                    Room #{entry.id.slice(0, 6)} • {entry.hasGuest ? 'Has guest' : 'Waiting'} • {entry.isPrivate ? 'private' : 'public'}
-                  </p>
+          <div className="grid gap-3">
+            {joinableRooms.map((entry, idx) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => {
+                  void onRequestJoin(entry.id, entry.isPrivate)
+                }}
+                className="glass-panel group w-full rounded-[1.5rem] p-4 text-left transition hover:-translate-y-0.5 hover:border-fuchsia-300/30 hover:bg-white/[0.09]"
+                style={{ animation: `slideInUp 0.45s ease-out ${idx * 70}ms both` }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-base font-bold text-white">{entry.roomName}</p>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-300">
+                        {entry.status}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-300">Host: {entry.hostName}</p>
+                    <p className="mt-1 text-xs text-slate-400">{roomRuleLabel(entry)}</p>
+                  </div>
+                  <span className="rounded-2xl bg-gradient-to-r from-fuchsia-300 to-violet-300 px-4 py-2 text-sm font-bold text-slate-950 transition group-hover:brightness-110">
+                    Join
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!entry.hasGuest && (
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-7 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-white">My hosted rooms</h3>
+            <span className="text-sm text-slate-400">Manage or delete</span>
+          </div>
+
+          {myHostedRooms.length === 0 && (
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/5 px-4 py-5 text-sm text-slate-300">
+              You are not hosting any rooms yet.
+            </div>
+          )}
+
+          <div className="grid gap-3">
+            {myHostedRooms.map((entry, idx) => (
+              <div
+                key={entry.id}
+                className="glass-panel rounded-[1.5rem] p-4"
+                style={{ animation: `slideInUp 0.45s ease-out ${idx * 70}ms both` }}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-base font-bold text-white">{entry.roomName}</p>
+                    <p className="mt-1 text-sm text-slate-300">
+                      Room #{entry.id.slice(0, 6)} · {entry.hasGuest ? 'Ready to play' : 'Waiting for a guest'}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">{entry.isPrivate ? 'Private room' : 'Public room'}</p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!entry.hasGuest && (
+                      <button
+                        type="button"
+                        onClick={() => openSamePhoneSetup(entry.id, entry.hostName)}
+                        className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-2 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-300/15"
+                      >
+                        Join same phone
+                      </button>
+                    )}
                     <button
-                      onClick={() => openSamePhoneSetup(entry.id, entry.hostName)}
-                      className="transform rounded-lg border border-violet-300 bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-900 transition-all duration-200 hover:scale-105 hover:bg-violet-100 active:scale-95"
+                      type="button"
+                      onClick={() => onDeleteHostedRoom(entry.id)}
+                      className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/15"
                     >
-                      Join Same Phone
+                      Delete
                     </button>
-                  )}
-                  <button
-                    onClick={() => onDeleteHostedRoom(entry.id)}
-                    className="transform rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-105 hover:bg-rose-500 active:scale-95"
-                  >
-                    Delete
-                  </button>
+                  </div>
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+        </div>
       </article>
 
       {showCreateModal && (
-        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm transition-all duration-300">
-          <div className="animate-scale-in w-full max-w-lg transform rounded-3xl border border-fuchsia-200 bg-white p-5 shadow-2xl transition-all duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-lg rounded-[1.75rem] p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-xl font-extrabold text-fuchsia-900">Create Room</h3>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-fuchsia-300">Room builder</p>
+                <h3 className="mt-1 text-2xl font-bold text-white">Create room</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="transform rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-sm font-semibold text-fuchsia-800 transition-all duration-200 hover:scale-105 hover:bg-fuchsia-100 active:scale-95"
+                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Close
               </button>
             </div>
 
-            <label className="mt-2 block text-sm font-semibold text-fuchsia-900">Room name</label>
+            <label className="mt-2 block text-sm font-semibold text-slate-100">Room name</label>
             <div className="mt-1 flex gap-2">
               <input
                 value={newRoomName}
                 onChange={(event) => onNewRoomNameChange(event.target.value)}
                 placeholder="Your room name"
                 maxLength={40}
-                className="w-full transform rounded-xl border border-violet-300 bg-white px-3 py-2 transition-all duration-200 focus:scale-105 focus:shadow-md"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
               />
               <button
                 type="button"
                 onClick={onRegenerateRoomName}
-                className="transform shrink-0 rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-900 transition-all duration-200 hover:scale-105 hover:bg-violet-100 active:scale-95"
+                className="shrink-0 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-fuchsia-200 transition hover:bg-white/10"
               >
                 Random
               </button>
             </div>
 
-            <label className="mt-3 block text-sm font-semibold text-fuchsia-900">Digits length (1-5)</label>
+            <label className="mt-3 block text-sm font-semibold text-slate-100">Digits length (1-5)</label>
             <input
               type="number"
               min={1}
               max={5}
               value={codeLength}
               onChange={(event) => onCodeLengthChange(Number(event.target.value))}
-              className="mt-1 w-full transform rounded-xl border border-violet-300 bg-white px-3 py-2 transition-all duration-200 focus:scale-105 focus:shadow-md"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 outline-none transition focus:border-fuchsia-300/60"
             />
 
-            <label className="mt-3 flex items-center gap-2 text-sm transition-all duration-200 hover:scale-105">
+            <label className="mt-3 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
               <input
                 type="checkbox"
                 checked={allowDuplicates}
@@ -209,7 +267,7 @@ export function RoomsPage({
               Allow duplicated digits
             </label>
 
-            <label className="mt-3 flex items-center gap-2 text-sm transition-all duration-200 hover:scale-105">
+            <label className="mt-3 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
               <input type="checkbox" checked={isPrivate} onChange={(event) => onIsPrivateChange(event.target.checked)} />
               Private room
             </label>
@@ -219,11 +277,11 @@ export function RoomsPage({
                 value={newRoomPassword}
                 onChange={(event) => onNewRoomPasswordChange(event.target.value)}
                 placeholder="Room password"
-                className="mt-3 w-full transform rounded-xl border border-violet-300 bg-white px-3 py-2 transition-all duration-200 focus:scale-105 focus:shadow-md"
+                className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
               />
             )}
 
-            <label className="mt-3 flex items-center gap-2 text-sm transition-all duration-200 hover:scale-105">
+            <label className="mt-3 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
               <input type="checkbox" checked={allowLies} onChange={(event) => onAllowLiesChange(event.target.checked)} />
               Allow lies (up to 3)
             </label>
@@ -235,7 +293,7 @@ export function RoomsPage({
                   setShowCreateModal(false)
                 }
               }}
-              className="transform mt-4 w-full rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-500 px-4 py-2 font-semibold text-white transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 shadow-md hover:shadow-lg"
+              className="mt-5 w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 font-bold text-slate-950 transition hover:brightness-110"
             >
               Create Room
             </button>
@@ -244,17 +302,20 @@ export function RoomsPage({
       )}
 
       {privateRoomToJoinId && (
-        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm transition-all duration-300">
-          <div className="animate-scale-in w-full max-w-md transform rounded-3xl border border-fuchsia-200 bg-white p-5 shadow-2xl transition-all duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-md rounded-[1.75rem] p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-xl font-extrabold text-fuchsia-900">Private Room Password</h3>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-fuchsia-300">Private room</p>
+                <h3 className="mt-1 text-2xl font-bold text-white">Enter password</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => {
                   setPrivateRoomToJoinId(null)
                   onJoinPasswordChange('')
                 }}
-                className="transform rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-sm font-semibold text-fuchsia-800 transition-all duration-200 hover:scale-105 hover:bg-fuchsia-100 active:scale-95"
+                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Close
               </button>
@@ -264,7 +325,7 @@ export function RoomsPage({
               value={joinPassword}
               onChange={(event) => onJoinPasswordChange(event.target.value)}
               placeholder="Enter room password"
-              className="w-full transform rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 transition-all duration-200 focus:scale-105 focus:shadow-md"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
             />
 
             <button
@@ -275,7 +336,7 @@ export function RoomsPage({
                   onJoinPasswordChange('')
                 }
               }}
-              className="transform mt-4 w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-2 font-semibold text-white transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 shadow-md hover:shadow-lg"
+              className="mt-5 w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 font-bold text-slate-950 transition hover:brightness-110"
             >
               Join Private Room
             </button>
@@ -284,36 +345,39 @@ export function RoomsPage({
       )}
 
       {samePhoneRoomId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-fuchsia-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-fuchsia-200 bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-md rounded-[1.75rem] p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-xl font-extrabold text-fuchsia-900">Same-Phone Player Setup</h3>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-fuchsia-300">Same-phone mode</p>
+                <h3 className="mt-1 text-2xl font-bold text-white">Player 2 setup</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setSamePhoneRoomId(null)}
-                className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-sm font-semibold text-fuchsia-800 hover:bg-fuchsia-100"
+                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Close
               </button>
             </div>
 
-            <label className="block text-sm font-semibold text-fuchsia-900">Player 2 name</label>
+            <label className="block text-sm font-semibold text-slate-100">Player 2 name</label>
             <input
               value={samePhoneGuestName}
               onChange={(event) => setSamePhoneGuestName(event.target.value)}
               maxLength={24}
               placeholder="Enter Player 2 name"
-              className="mt-1 w-full rounded-xl border border-violet-300 bg-white px-3 py-2"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none"
             />
 
-            <label className="mt-4 block text-sm font-semibold text-fuchsia-900">Player 2 avatar</label>
+            <label className="mt-4 block text-sm font-semibold text-slate-100">Player 2 avatar</label>
             <div className="mt-2 grid grid-cols-6 gap-2">
               {['😀', '😎', '🤖', '🧠', '🦊', '🐼', '🐯', '🐸', '🦄', '🐙', '🚀', '⚡'].map((icon) => (
                 <button
                   type="button"
                   key={icon}
                   onClick={() => setSamePhoneGuestAvatar(icon)}
-                  className={`rounded-lg border px-2 py-2 text-lg ${samePhoneGuestAvatar === icon ? 'border-fuchsia-500 bg-fuchsia-100' : 'border-violet-200 bg-violet-50 hover:bg-violet-100'}`}
+                  className={`rounded-2xl border px-2 py-2 text-lg transition ${samePhoneGuestAvatar === icon ? 'border-fuchsia-300/60 bg-fuchsia-300/15' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
                 >
                   {icon}
                 </button>
@@ -327,7 +391,7 @@ export function RoomsPage({
                   setSamePhoneRoomId(null)
                 }
               }}
-              className="mt-5 w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-2 font-semibold text-white hover:brightness-110"
+              className="mt-5 w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 font-bold text-slate-950 transition hover:brightness-110"
             >
               Start Same-Phone Match
             </button>

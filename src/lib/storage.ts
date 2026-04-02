@@ -14,6 +14,13 @@ const defaultAudioSettings: AudioSettings = {
   musicVolume: 0.35,
   sfxVolume: 0.65,
   musicTheme: 'arcade',
+  uiTheme: 'neon-pink',
+}
+
+function normalizeUiTheme(value: unknown): AudioSettings['uiTheme'] {
+  return value === 'midnight-purple' || value === 'arcade-cyan' || value === 'sunset-pop' || value === 'neon-pink'
+    ? value
+    : defaultAudioSettings.uiTheme
 }
 
 export function loadUser(): UserProfile | null {
@@ -67,6 +74,7 @@ export function loadAudioSettings(): AudioSettings {
         parsed.musicTheme === 'calm' || parsed.musicTheme === 'arcade'
           ? parsed.musicTheme
           : defaultAudioSettings.musicTheme,
+      uiTheme: normalizeUiTheme(parsed.uiTheme),
     }
   } catch {
     return defaultAudioSettings

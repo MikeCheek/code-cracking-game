@@ -14,6 +14,7 @@ export interface AudioSettings {
   musicVolume: number
   sfxVolume: number
   musicTheme: 'arcade' | 'calm'
+  uiTheme: 'neon-pink' | 'midnight-purple' | 'arcade-cyan' | 'sunset-pop'
 }
 
 export interface PlayerProfile extends UserProfile {
