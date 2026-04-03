@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { GuessRecord, PlayerProfile, RoomData, RpsChoice } from '../types'
 import { WORD_LANGUAGE_LABELS } from '../constants'
 import { getRoomGameMode, getRoomWordLanguage } from '../utils/gameMode'
@@ -9,14 +9,28 @@ const RPS_ITEMS: Array<{ value: RpsChoice; icon: string; label: string }> = [
   { value: 'scissors', icon: '✂️', label: 'Scissors' },
 ]
 
+const QUICK_EMOTES = ['😍', '🧐', '😈', '🕒', '🔥', '😂']
+
 const DIGIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
 const LETTER_KEYS = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm'] as const
 type DigitKind = 'strike' | 'ball' | 'miss' | 'code'
+type FlyingEmote = {
+  id: string
+  value: string
+  dx: number
+  dy: number
+  rotate: number
+  durationMs: number
+}
 
 type GameplayPageProps = {
   room: RoomData
   myProfile: PlayerProfile | null
   opponentProfile: PlayerProfile | null
+  hostProfile?: PlayerProfile | null
+  guestProfile?: PlayerProfile | null
+  watcherProfile?: PlayerProfile | null
+  isWatchMode?: boolean
   sortedHistory: GuessRecord[]
   pendingForResponder: boolean
   myTurn: boolean
@@ -36,6 +50,8 @@ type GameplayPageProps = {
   onUnlockSecret: () => void
   onSubmitGuess: () => void
   onAnswerGuess: () => void
+  onSendQuickEmote: (emote: string) => void
+  onBackToRooms: () => void
   onLeaveRoom: () => void
   onDeleteRoom: () => void
   canDeleteRoom: boolean
@@ -47,6 +63,10 @@ export function GameplayPage({
   room,
   myProfile,
   opponentProfile,
+  hostProfile = null,
+  guestProfile = null,
+  watcherProfile = null,
+  isWatchMode = false,
   sortedHistory,
   pendingForResponder,
   myTurn,
@@ -66,6 +86,8 @@ export function GameplayPage({
   onUnlockSecret,
   onSubmitGuess,
   onAnswerGuess,
+  onSendQuickEmote,
+  onBackToRooms,
   onLeaveRoom,
   onDeleteRoom,
   canDeleteRoom,
@@ -73,8 +95,11 @@ export function GameplayPage({
   isCheckingWordGuess,
 }: GameplayPageProps) {
   const [showGameMenu, setShowGameMenu] = useState(false)
+  const [showEmotePicker, setShowEmotePicker] = useState(false)
+  const [flyingEmotes, setFlyingEmotes] = useState<FlyingEmote[]>([])
   const [rpsNow, setRpsNow] = useState(0)
   const gameMenuRef = useRef<HTMLDivElement | null>(null)
+  const latestQuickEmoteAtRef = useRef<Record<string, number>>({})
   const isWordGame = getRoomGameMode(room) === 'words'
   const wordLanguageLabel = WORD_LANGUAGE_LABELS[getRoomWordLanguage(room)]
   const isMyTurnCard = room.currentTurnPlayerId && myProfile?.id === room.currentTurnPlayerId
@@ -100,6 +125,26 @@ export function GameplayPage({
     const timer = setInterval(tick, 100)
     return () => clearInterval(timer)
   }, [room.rpsDeadlineAt, room.status])
+
+  useEffect(() => {
+    latestQuickEmoteAtRef.current = {}
+  }, [room.id])
+
+  const createRandomFlight = (emoteId: string, value: string): FlyingEmote => {
+    const dxBase = 120 + Math.random() * 200
+    const dyBase = -(210 + Math.random() * 150)
+    const rotateBase = (Math.random() < 0.5 ? -1 : 1) * (10 + Math.random() * 20)
+    const durationMs = 1850 + Math.round(Math.random() * 450)
+
+    return {
+      id: emoteId,
+      value,
+      dx: dxBase,
+      dy: dyBase,
+      rotate: rotateBase,
+      durationMs,
+    }
+  }
 
   const appendSymbol = (current: string, symbol: string) => {
     if (current.length >= maxCodeLength) return
@@ -162,12 +207,146 @@ export function GameplayPage({
   }
 
   const pendingKinds = getDigitKinds(room.pendingGuess?.guess ?? '', claimedBulls, claimedCows, mySecret)
+  const quickEmoteEntries = useMemo(
+    () => (room.quickEmotes ? Object.entries(room.quickEmotes) : []),
+    [room.quickEmotes],
+  )
   const rpsTimeLeftMs = room.status === 'rps' && room.rpsDeadlineAt ? Math.max(0, room.rpsDeadlineAt - rpsNow) : 5000
   const rpsTimeLeftSeconds = Math.ceil(rpsTimeLeftMs / 1000)
   const rpsProgress = Math.max(0, Math.min(1, rpsTimeLeftMs / 5000))
 
+  useEffect(() => {
+    if (quickEmoteEntries.length === 0) return
+
+    const addTimers: number[] = []
+    const removeTimers: number[] = []
+
+    for (const [senderId, payload] of quickEmoteEntries) {
+      const previousAt = latestQuickEmoteAtRef.current[senderId] ?? 0
+      if (payload.at <= previousAt) continue
+
+      latestQuickEmoteAtRef.current[senderId] = payload.at
+      const emoteId = `${senderId}-${payload.at}`
+
+      const addTimeout = window.setTimeout(() => {
+        setFlyingEmotes((current) => [...current, createRandomFlight(emoteId, payload.value)])
+      }, 0)
+      addTimers.push(addTimeout)
+
+      const removeTimeout = window.setTimeout(() => {
+        setFlyingEmotes((current) => current.filter((entry) => entry.id !== emoteId))
+      }, 2600)
+      removeTimers.push(removeTimeout)
+    }
+
+    return () => {
+      addTimers.forEach((timer) => clearTimeout(timer))
+      removeTimers.forEach((timer) => clearTimeout(timer))
+    }
+  }, [quickEmoteEntries])
+
+  if (isWatchMode) {
+    return (
+      <section className="relative mx-auto grid w-full max-w-4xl gap-3 pb-24">
+        <article className="glass-panel-strong rounded-3xl p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Spectating</p>
+              <h2 className="text-xl font-bold text-white">{room.roomName}</h2>
+              <p className="text-sm text-slate-300">Read-only mode: you can watch and send emotes.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onBackToRooms}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Go back
+            </button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-200">
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">You: {watcherProfile?.avatar ?? '👀'} {watcherProfile?.username ?? 'Watcher'}</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">Host: {hostProfile?.avatar ?? '🙂'} {hostProfile?.username ?? 'Host'}</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">Guest: {guestProfile ? `${guestProfile.avatar} ${guestProfile.username}` : 'Waiting for player 2'}</span>
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-3xl p-3">
+          <p className="mb-2 text-sm font-semibold text-white">Guesses</p>
+          {sortedHistory.length === 0 ? (
+            <p className="text-sm text-slate-300">No guesses yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {sortedHistory.map((item) => (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Turn {item.turnNumber}</span>
+                    <span className="font-mono text-fuchsia-200">{item.guess}</span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    {room.profiles[item.fromPlayerId]?.username ?? 'Player'} • {item.actualBulls} Strikes • {item.actualCows} Balls
+                  </p>
+                  {item.lieDetected && (
+                    <p className="text-xs font-semibold text-rose-200">
+                      Lie detected: {room.profiles[item.toPlayerId]?.username ?? 'Responder'} gave a false answer.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
+          {flyingEmotes.map((entry) => (
+            <span
+              key={entry.id}
+              className="quick-emote-fly"
+              style={{
+                ['--emote-dx' as string]: `${entry.dx}px`,
+                ['--emote-dy' as string]: `${entry.dy}px`,
+                ['--emote-rotate' as string]: `${entry.rotate}deg`,
+                ['--emote-duration' as string]: `${entry.durationMs}ms`,
+              }}
+            >
+              {entry.value}
+            </span>
+          ))}
+        </div>
+
+        <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
+          {showEmotePicker && (
+            <div className="glass-panel-strong flex max-w-[15rem] flex-wrap justify-start gap-2 rounded-2xl border border-white/10 p-2">
+              {QUICK_EMOTES.map((emote) => (
+                <button
+                  key={emote}
+                  type="button"
+                  onClick={() => {
+                    onSendQuickEmote(emote)
+                    setShowEmotePicker(false)
+                  }}
+                  className="h-11 w-11 rounded-xl border border-white/10 bg-white/5 text-2xl leading-none transition hover:scale-105 hover:bg-white/10"
+                >
+                  {emote}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowEmotePicker((open) => !open)}
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
+            aria-label="Toggle quick emotes"
+            aria-expanded={showEmotePicker}
+          >
+            😍
+          </button>
+        </div>
+      </section>
+    )
+  }
+
   return (
-    <section className="mx-auto grid w-full max-w-4xl gap-3">
+    <section className="relative mx-auto grid w-full max-w-4xl gap-3 pb-24">
       <article className="glass-panel-strong rounded-3xl p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -644,6 +823,52 @@ export function GameplayPage({
           </div>
         </div>
       )}
+
+      <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
+        {flyingEmotes.map((entry) => (
+          <span
+            key={entry.id}
+            className="quick-emote-fly"
+            style={{
+              ['--emote-dx' as string]: `${entry.dx}px`,
+              ['--emote-dy' as string]: `${entry.dy}px`,
+              ['--emote-rotate' as string]: `${entry.rotate}deg`,
+              ['--emote-duration' as string]: `${entry.durationMs}ms`,
+            }}
+          >
+            {entry.value}
+          </span>
+        ))}
+      </div>
+
+      <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
+        {showEmotePicker && (
+          <div className="glass-panel-strong flex max-w-[15rem] flex-wrap justify-start gap-2 rounded-2xl border border-white/10 p-2">
+            {QUICK_EMOTES.map((emote) => (
+              <button
+                key={emote}
+                type="button"
+                onClick={() => {
+                  onSendQuickEmote(emote)
+                  setShowEmotePicker(false)
+                }}
+                className="h-11 w-11 rounded-xl border border-white/10 bg-white/5 text-2xl leading-none transition hover:scale-105 hover:bg-white/10"
+              >
+                {emote}
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowEmotePicker((open) => !open)}
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
+          aria-label="Toggle quick emotes"
+          aria-expanded={showEmotePicker}
+        >
+          😍
+        </button>
+      </div>
 
     </section>
   )

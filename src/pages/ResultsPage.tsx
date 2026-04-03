@@ -7,6 +7,7 @@ type ResultsPageProps = {
   sortedHistory: GuessRecord[]
   onBackToRooms: () => void
   onPlayAgain: () => void
+  canPlayAgain?: boolean
 }
 
 export function ResultsPage({
@@ -16,6 +17,7 @@ export function ResultsPage({
   sortedHistory,
   onBackToRooms,
   onPlayAgain,
+  canPlayAgain = true,
 }: ResultsPageProps) {
   const winner = room.winnerId ? room.profiles[room.winnerId] : null
   const myVote = Boolean(myProfile?.id && room.replayVotes?.[myProfile.id])
@@ -84,26 +86,40 @@ export function ResultsPage({
       </article>
 
       <article className="glass-panel rounded-3xl p-3">
-        <p className="text-xs text-slate-300">
-          {opponentVote ? 'Opponent wants to play again.' : 'Opponent has not asked for a replay yet.'}
-        </p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onBackToRooms}
-            className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Games page
-          </button>
-          <button
-            type="button"
-            onClick={onPlayAgain}
-            disabled={myVote}
-            className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-3 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {myVote ? 'Replay requested' : 'Play again'}
-          </button>
-        </div>
+        {canPlayAgain ? (
+          <>
+            <p className="text-xs text-slate-300">
+              {opponentVote ? 'Opponent wants to play again.' : 'Opponent has not asked for a replay yet.'}
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onBackToRooms}
+                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Games page
+              </button>
+              <button
+                type="button"
+                onClick={onPlayAgain}
+                disabled={myVote}
+                className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-3 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {myVote ? 'Replay requested' : 'Play again'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-1">
+            <button
+              type="button"
+              onClick={onBackToRooms}
+              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Games page
+            </button>
+          </div>
+        )}
       </article>
     </section>
   )

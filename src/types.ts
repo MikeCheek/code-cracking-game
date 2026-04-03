@@ -63,6 +63,7 @@ export interface RoomData {
   guestId?: string
   settings: RoomSettings
   profiles: Record<string, PlayerProfile>
+  spectatorProfiles?: Record<string, PlayerProfile>
   penalties: Record<string, number>
   rpsChoices?: Record<string, RpsChoice>
   rpsRound: number
@@ -80,6 +81,7 @@ export interface RoomData {
   lockedSecrets?: Record<string, boolean>
   pendingGuess?: PendingGuess
   guessHistory?: Record<string, GuessRecord>
+  quickEmotes?: Record<string, { value: string; at: number }>
   winnerId?: string
   loserId?: string
   message?: string

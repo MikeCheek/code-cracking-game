@@ -225,6 +225,31 @@ export async function joinOwnRoomAsGuest(roomId: string, hostUserId: string, gue
   }
 }
 
+export async function joinRoomAsSpectator(roomId: string, user: UserProfile): Promise<void> {
+  const currentRef = roomRef(roomId)
+
+  const tx = await runTransaction(currentRef, (room: RoomData | null) => {
+    if (!room) return room
+    if (room.status === 'finished') return room
+
+    if (room.hostId === user.id || room.guestId === user.id) {
+      return room
+    }
+
+    room.spectatorProfiles = room.spectatorProfiles ?? {}
+    room.spectatorProfiles[user.id] = {
+      ...user,
+      joinedAt: Date.now(),
+    }
+    room.message = `${user.username} is watching the match`
+    return room
+  })
+
+  if (!tx.committed) {
+    throw new Error('Could not join as spectator')
+  }
+}
+
 export function subscribeRoom(roomId: string, callback: (room: RoomData | null) => void): Unsubscribe {
   const currentRef = roomRef(roomId)
   return onValue(currentRef, (snapshot) => {
@@ -302,6 +327,14 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
   const tx = await runTransaction(targetRef, (room: RoomData | null) => {
     if (!room) return room
 
+    if (room.spectatorProfiles?.[userId]) {
+      delete room.spectatorProfiles[userId]
+      if (Object.keys(room.spectatorProfiles).length === 0) {
+        delete room.spectatorProfiles
+      }
+      return room
+    }
+
     const isHost = room.hostId === userId
     const isGuest = room.guestId === userId
     if (!isHost && !isGuest) return room
@@ -377,6 +410,26 @@ export async function finalizeRpsRound(roomId: string): Promise<void> {
     if (!room.rpsDeadlineAt) return room
     if (Date.now() < room.rpsDeadlineAt) return room
     return resolveRpsRound(room)
+  })
+}
+
+export async function sendQuickEmote(roomId: string, userId: string, emote: string): Promise<void> {
+  await runTransaction(roomRef(roomId), (room: RoomData | null) => {
+    if (!room) return room
+    const isPlayer = Boolean(room.profiles[userId])
+    const isSpectator = Boolean(room.spectatorProfiles?.[userId])
+    if (!isPlayer && !isSpectator) return room
+    if (room.pausedByDisconnect?.playerId) return room
+
+    room.quickEmotes = room.quickEmotes ?? {}
+    const previousAt = room.quickEmotes[userId]?.at ?? 0
+    const nextAt = Math.max(Date.now(), previousAt + 1)
+    room.quickEmotes[userId] = {
+      value: emote,
+      at: nextAt,
+    }
+
+    return room
   })
 }
 

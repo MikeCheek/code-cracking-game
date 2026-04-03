@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { MAX_WORD_CODE_LENGTH, WORD_LANGUAGE_LABELS, WORD_LANGUAGE_OPTIONS } from '../constants'
 import type { GameMode, WordLanguage } from '../types'
 import type { LobbyRoomSummary } from '../types'
+import { ActiveRoomCard, PastRoomCard } from './rooms/RoomCards'
 
 type RoomsPageProps = {
-  joinableRooms: LobbyRoomSummary[]
+  lobbyRooms: LobbyRoomSummary[]
   codeLength: number
   allowDuplicates: boolean
   isPrivate: boolean
@@ -26,10 +27,12 @@ type RoomsPageProps = {
   onJoinPasswordChange: (value: string) => void
   onCreateRoom: () => Promise<boolean>
   onJoinRoom: (roomId: string) => Promise<boolean>
+  onWatchRoom: (roomId: string) => Promise<boolean>
+  onOpenPastGameResults: (roomId: string) => void
 }
 
 export function RoomsPage({
-  joinableRooms,
+  lobbyRooms,
   codeLength,
   allowDuplicates,
   isPrivate,
@@ -51,9 +54,19 @@ export function RoomsPage({
   onJoinPasswordChange,
   onCreateRoom,
   onJoinRoom,
+  onWatchRoom,
+  onOpenPastGameResults,
 }: RoomsPageProps) {
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [privateRoomToJoinId, setPrivateRoomToJoinId] = useState<string | null>(null)
+  const [showPastGames, setShowPastGames] = useState(false)
+  const [showOldOpenGames, setShowOldOpenGames] = useState(false)
+  const [roomsViewNow] = useState(() => Date.now())
+  const activeLobbyRooms = lobbyRooms.filter((entry) => entry.status !== 'finished')
+  const oldOpenLobbyRooms = activeLobbyRooms.filter((entry) => roomsViewNow - entry.createdAt > ONE_DAY_MS)
+  const freshActiveLobbyRooms = activeLobbyRooms.filter((entry) => roomsViewNow - entry.createdAt <= ONE_DAY_MS)
+  const pastLobbyRooms = lobbyRooms.filter((entry) => entry.status === 'finished')
 
   const onRequestJoin = async (roomId: string, roomIsPrivate: boolean) => {
     if (!roomIsPrivate) {
@@ -81,7 +94,7 @@ export function RoomsPage({
       </article>
 
       <article className="glass-panel rounded-3xl p-3 overflow-y-auto">
-        {joinableRooms.length === 0 ? (
+        {freshActiveLobbyRooms.length === 0 ? (
           <div className="flex min-h-[18rem] flex-col items-center justify-center gap-4 px-4 py-8 text-center">
             <div className="relative flex h-44 w-full max-w-sm items-center justify-center" aria-hidden="true">
               <div className="absolute inset-x-8 top-8 h-28 rounded-[2rem] border border-cyan-200/15 bg-slate-950/35 shadow-[0_0_50px_rgba(111,255,233,0.12)]" />
@@ -107,56 +120,81 @@ export function RoomsPage({
             </div>
 
             <div>
-              <p className="text-lg font-bold text-white">The lobby is empty.</p>
-              <p className="mt-1 text-sm text-slate-300">Be the first to open a game and pull someone into the code hunt.</p>
+              <p className="text-lg font-bold text-white">No active games right now.</p>
+              <p className="mt-1 text-sm text-slate-300">Start a new challenge, or open past games below to review completed matches.</p>
             </div>
           </div>
         ) : (
           <div className="space-y-2">
-            {joinableRooms.map((entry) => (
-              <div
+            {freshActiveLobbyRooms.map((entry) => (
+              <ActiveRoomCard
                 key={entry.id}
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:bg-white/[0.08]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-white">{entry.roomName}</p>
-                    <p className="mt-0.5 text-xs text-cyan-200/95">Host: {entry.hostName}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void onRequestJoin(entry.id, entry.isPrivate)
-                    }}
-                    className="shrink-0 rounded-xl bg-gradient-to-r from-cyan-300 via-sky-300 to-fuchsia-300 px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-slate-950 shadow-[0_10px_24px_rgba(34,211,238,0.2)] transition hover:brightness-110"
-                  >
-                    Join →
-                  </button>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-white/10 bg-slate-900/55 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
-                    {entry.gameMode === 'words' ? 'Word mode' : 'Number mode'}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-slate-900/55 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
-                    {entry.codeLength} {entry.gameMode === 'words' ? 'letters' : 'digits'}
-                  </span>
-                  {entry.gameMode === 'words' && entry.wordLanguage && (
-                    <span className="rounded-full border border-white/10 bg-slate-900/55 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
-                      {WORD_LANGUAGE_LABELS[entry.wordLanguage]}
-                    </span>
-                  )}
-                  {entry.gameMode === 'numbers' && (
-                    <span className="rounded-full border border-white/10 bg-slate-900/55 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
-                      {entry.allowDuplicates ? 'Duplicates on' : 'Unique digits'}
-                    </span>
-                  )}
-                  <span className="rounded-full border border-white/10 bg-slate-900/55 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
-                    {entry.isPrivate ? 'Private' : 'Public'}
-                  </span>
-                </div>
-              </div>
+                entry={entry}
+                onRequestJoin={(roomId, roomIsPrivate) => {
+                  void onRequestJoin(roomId, roomIsPrivate)
+                }}
+                onWatchRoom={(roomId) => {
+                  void onWatchRoom(roomId)
+                }}
+              />
             ))}
+          </div>
+        )}
+
+        {oldOpenLobbyRooms.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+            <button
+              type="button"
+              onClick={() => setShowOldOpenGames((open) => !open)}
+              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+              aria-expanded={showOldOpenGames}
+            >
+              <span>Games started more than 1 day ago ({oldOpenLobbyRooms.length})</span>
+              <span>{showOldOpenGames ? 'Hide' : 'Show'}</span>
+            </button>
+
+            {showOldOpenGames && (
+              <div className="mt-2 space-y-2">
+                {oldOpenLobbyRooms.map((entry) => (
+                  <ActiveRoomCard
+                    key={`old-open-${entry.id}`}
+                    entry={entry}
+                    onRequestJoin={(roomId, roomIsPrivate) => {
+                      void onRequestJoin(roomId, roomIsPrivate)
+                    }}
+                    onWatchRoom={(roomId) => {
+                      void onWatchRoom(roomId)
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {pastLobbyRooms.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+            <button
+              type="button"
+              onClick={() => setShowPastGames((open) => !open)}
+              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+              aria-expanded={showPastGames}
+            >
+              <span>Past games ({pastLobbyRooms.length})</span>
+              <span>{showPastGames ? 'Hide' : 'Show'}</span>
+            </button>
+
+            {showPastGames && (
+              <div className="mt-2 space-y-2">
+                {pastLobbyRooms.map((entry) => (
+                  <PastRoomCard
+                    key={`past-${entry.id}`}
+                    entry={entry}
+                    onOpenPastGameResults={onOpenPastGameResults}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </article>

@@ -433,6 +433,25 @@ body::after {
   }
 }
 
+@keyframes quickEmoteFly {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0) rotate(0deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate3d(calc(var(--emote-dx) * 0.24), calc(var(--emote-dy) * 0.2), 0) scale(0.95) rotate(calc(var(--emote-rotate) * 0.35));
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(calc(var(--emote-dx) * 0.82), calc(var(--emote-dy) * 0.88), 0) scale(1.1) rotate(calc(var(--emote-rotate) * 0.84));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--emote-dx), var(--emote-dy), 0) scale(1.16) rotate(var(--emote-rotate));
+  }
+}
+
 /* Utility classes */
 .animate-slide-in-down {
   animation: slideInDown 0.5s ease-out;
@@ -569,4 +588,21 @@ body::after {
 
 .rps-showdown-right-tie {
   animation: rpsRightTie 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.quick-emote-fly {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  font-size: 2.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+  --emote-dx: 160px;
+  --emote-dy: -260px;
+  --emote-rotate: 18deg;
+  --emote-duration: 2100ms;
+  animation-name: quickEmoteFly;
+  animation-duration: var(--emote-duration);
+  animation-timing-function: cubic-bezier(0.14, 0.9, 0.22, 1);
+  animation-fill-mode: forwards;
 }

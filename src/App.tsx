@@ -9,11 +9,13 @@ import {
   createRoom,
   deleteRoom,
   joinRoom,
+  joinRoomAsSpectator,
   joinOwnRoomAsGuest,
   keepWaitingForRejoin,
   leaveRoom as leaveRoomRealtime,
   lockSecret,
   finalizeRpsRound,
+  sendQuickEmote,
   votePlayAgain,
   unlockSecret,
   submitGuess,
@@ -69,6 +71,8 @@ function App() {
   const location = useLocation()
   const roomMatch = useMatch('/room/:roomId/*')
   const routeRoomId = roomMatch?.params.roomId ?? null
+  const isWatchRoute = location.pathname.endsWith('/watch')
+  const isPastResultsView = useMemo(() => new URLSearchParams(location.search).get('past') === '1', [location.search])
   const inviteRoomId = useMemo(() => {
     const inviteId = new URLSearchParams(location.search).get('room')
     return inviteId?.trim() || null
@@ -174,6 +178,9 @@ function App() {
   const currentPlayerId = isHotseatMode
     ? hotseatRevealedPlayerId ?? hotseatPendingPlayerId ?? signedInUserId
     : signedInUserId
+  const isCurrentUserParticipant = Boolean(
+    room && signedInUserId && (room.hostId === signedInUserId || room.guestId === signedInUserId),
+  )
 
   const showHotseatPassOverlay = Boolean(
     isHotseatMode &&
@@ -297,6 +304,13 @@ function App() {
   useEffect(() => {
     if (!routeRoomId || !room || room.id !== routeRoomId) return
 
+    if (isWatchRoute) {
+      if (room.status === 'finished') {
+        navigate(`/room/${routeRoomId}/results?past=1`, { replace: true })
+      }
+      return
+    }
+
     const waitingPath = `/room/${routeRoomId}/waiting`
     const playPath = `/room/${routeRoomId}/play`
     const resultsPath = `/room/${routeRoomId}/results`
@@ -314,7 +328,7 @@ function App() {
     if (room.status !== 'waiting' && room.status !== 'finished' && location.pathname !== playPath) {
       navigate(playPath, { replace: true })
     }
-  }, [location.pathname, navigate, routeRoomId, room])
+  }, [isWatchRoute, location.pathname, navigate, routeRoomId, room])
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
@@ -362,13 +376,23 @@ function App() {
   const myTurn = room?.currentTurnPlayerId === currentPlayerId
   const mySecret = room && currentPlayerId ? room.secrets?.[currentPlayerId] : undefined
   const shouldShowDisconnectPauseModal = Boolean(
+    isCurrentUserParticipant &&
     room?.pausedByDisconnect?.playerId &&
     currentPlayerId &&
     room.pausedByDisconnect.playerId !== currentPlayerId &&
     room.pausedByDisconnect.at !== dismissedPausePromptAt,
   )
 
-  const joinableRooms = useMemo(() => rooms.filter((entry) => !entry.hasGuest), [rooms])
+  const lobbyRooms = useMemo(
+    () =>
+      [...rooms].sort((a, b) => {
+        if (a.hasGuest !== b.hasGuest) {
+          return a.hasGuest ? 1 : -1
+        }
+        return b.createdAt - a.createdAt
+      }),
+    [rooms],
+  )
 
   useEffect(() => {
     lastHandledHistoryIdRef.current = null
@@ -422,6 +446,12 @@ function App() {
     if (location.pathname.endsWith('/results')) {
       return {
         title: 'Match Summary',
+      }
+    }
+
+    if (location.pathname.endsWith('/watch')) {
+      return {
+        title: 'Spectator View',
       }
     }
 
@@ -514,6 +544,23 @@ function App() {
       return false
     }
   }, [joinPassword, navigate, user])
+
+  const onWatchRoom = useCallback(async (targetRoomId: string): Promise<boolean> => {
+    if (!user) return false
+    try {
+      await joinRoomAsSpectator(targetRoomId, user)
+      toast.success('Watching game')
+      navigate(`/room/${targetRoomId}/watch`)
+      return true
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not start watch mode')
+      return false
+    }
+  }, [navigate, user])
+
+  const onOpenPastGameResults = useCallback((targetRoomId: string) => {
+    navigate(`/room/${targetRoomId}/results?past=1`)
+  }, [navigate])
 
   useEffect(() => {
     if (!user || !inRoomsRoute || !inviteRoomId) return
@@ -703,6 +750,17 @@ function App() {
       playClick()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not answer guess')
+    }
+  }
+
+  const onSendQuickEmote = async (emote: string) => {
+    if (!room || !signedInUserId) return
+    const senderId = isWatchRoute ? signedInUserId : (currentPlayerId ?? signedInUserId)
+    try {
+      await sendQuickEmote(room.id, senderId, emote)
+      playClick()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not send emote')
     }
   }
 
@@ -1112,7 +1170,7 @@ function App() {
             element={
               user ? (
                 <RoomsPage
-                  joinableRooms={joinableRooms}
+                  lobbyRooms={lobbyRooms}
                   codeLength={codeLength}
                   allowDuplicates={allowDuplicates}
                   isPrivate={isPrivate}
@@ -1139,6 +1197,8 @@ function App() {
                   onJoinPasswordChange={setJoinPassword}
                   onCreateRoom={onCreateRoom}
                   onJoinRoom={onJoinRoom}
+                  onWatchRoom={onWatchRoom}
+                  onOpenPastGameResults={onOpenPastGameResults}
                 />
               ) : (
                 <Navigate to="/welcome" replace />
@@ -1209,11 +1269,68 @@ function App() {
                       onUnlockSecret={onUnlockSecret}
                       onSubmitGuess={onSubmitGuess}
                       onAnswerGuess={onAnswerGuess}
+                      onSendQuickEmote={onSendQuickEmote}
+                      onBackToRooms={onBackToGames}
                       onLeaveRoom={requestLeaveRoom}
                       onDeleteRoom={() => onDeleteHostedRoom(room.id)}
                       canDeleteRoom={room.hostId === user.id}
                       isCheckingWordSecret={isCheckingWordSecret}
                       isCheckingWordGuess={isCheckingWordGuess}
+                    />
+                  ) : (
+                    <section className="glass-panel rounded-3xl p-6">
+                      <h2 className="text-2xl font-bold text-white">Loading room...</h2>
+                      <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
+                    </section>
+                  )
+                ) : (
+                  <Navigate to="/welcome" replace />
+                )
+              }
+            />
+
+            <Route
+              path="/room/:roomId/watch"
+              element={
+                user ? (
+                  room ? (
+                    <GameplayPage
+                      room={room}
+                      myProfile={myProfile}
+                      opponentProfile={opponentProfile}
+                      sortedHistory={sortedHistory}
+                      pendingForResponder={false}
+                      myTurn={false}
+                      rpsChoice={''}
+                      secretInput=""
+                      secretLocked
+                      guessInput=""
+                      claimedBulls={0}
+                      claimedCows={0}
+                      onRpsChoice={() => {}}
+                      onSecretInputChange={() => {}}
+                      onGuessInputChange={() => {}}
+                      onClaimedBullsChange={() => {}}
+                      onClaimedCowsChange={() => {}}
+                      onSubmitSecret={() => {}}
+                      onUnlockSecret={() => {}}
+                      onSubmitGuess={() => {}}
+                      onAnswerGuess={() => {}}
+                      onSendQuickEmote={onSendQuickEmote}
+                      onBackToRooms={onBackToGames}
+                      onLeaveRoom={requestLeaveRoom}
+                      onDeleteRoom={() => {}}
+                      canDeleteRoom={false}
+                      isCheckingWordSecret={false}
+                      isCheckingWordGuess={false}
+                      isWatchMode
+                      hostProfile={room.profiles[room.hostId] ?? null}
+                      guestProfile={room.guestId ? room.profiles[room.guestId] ?? null : null}
+                      watcherProfile={
+                        signedInUserId
+                          ? room.spectatorProfiles?.[signedInUserId] ?? room.profiles[signedInUserId] ?? null
+                          : null
+                      }
                     />
                   ) : (
                     <section className="glass-panel rounded-3xl p-6">
@@ -1239,6 +1356,7 @@ function App() {
                       sortedHistory={sortedHistory}
                       onBackToRooms={onBackToGames}
                       onPlayAgain={onPlayAgain}
+                      canPlayAgain={!isPastResultsView && isCurrentUserParticipant}
                     />
                   ) : (
                     <section className="glass-panel rounded-3xl p-6">

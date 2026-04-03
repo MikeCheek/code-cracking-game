@@ -69,7 +69,7 @@ export function WaitingRoomPage({
         </div>
       </article>
 
-      <article className="grid grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_220px_1fr]">
+      <article className="grid grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_1fr]">
         <div className="glass-panel rounded-3xl p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Participants</p>
           <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white">
@@ -93,11 +93,10 @@ export function WaitingRoomPage({
           )}
         </div>
 
-        <div className="glass-panel flex items-center justify-center rounded-3xl p-4">
+        <div className="glass-panel rounded-3xl p-4">
+           <div className="flex items-center justify-center rounded-3xl p-4">
           <div className="animate-hourglass text-7xl" aria-hidden="true">⏳</div>
         </div>
-
-        <div className="glass-panel rounded-3xl p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Share invite</p>
           <div className="mt-3 grid gap-2">
             <button
