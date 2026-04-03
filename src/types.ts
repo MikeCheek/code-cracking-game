@@ -1,6 +1,8 @@
 export type GameStatus = 'waiting' | 'rps' | 'secrets' | 'playing' | 'finished'
 
 export type RpsChoice = 'rock' | 'paper' | 'scissors'
+export type GameMode = 'numbers' | 'words'
+export type WordLanguage = 'en' | 'it' | 'es' | 'fr'
 
 export interface UserProfile {
   id: string
@@ -22,6 +24,8 @@ export interface PlayerProfile extends UserProfile {
 }
 
 export interface RoomSettings {
+  gameMode?: GameMode
+  wordLanguage?: WordLanguage
   codeLength: number
   allowDuplicates: boolean
   isPrivate: boolean
@@ -62,6 +66,14 @@ export interface RoomData {
   penalties: Record<string, number>
   rpsChoices?: Record<string, RpsChoice>
   rpsRound: number
+  rpsDeadlineAt?: number
+  lastRpsResult?: {
+    round: number
+    hostChoice: RpsChoice
+    guestChoice: RpsChoice
+    winner: 'host' | 'guest' | 'tie'
+    at: number
+  }
   starterPlayerId?: string
   currentTurnPlayerId?: string
   secrets?: Record<string, string>
@@ -82,6 +94,8 @@ export interface LobbyRoomSummary {
   id: string
   roomName: string
   status: GameStatus
+  gameMode: GameMode
+  wordLanguage?: WordLanguage
   isPrivate: boolean
   hostId: string
   hostName: string

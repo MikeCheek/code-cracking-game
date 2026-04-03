@@ -331,6 +331,108 @@ body::after {
   }
 }
 
+@keyframes rpsLeftWin {
+  0% {
+    opacity: 0;
+    transform: translateX(-150px) scale(0.75) rotate(-10deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(-24px) scale(1.12) rotate(4deg);
+  }
+  70% {
+    transform: translateX(8px) scale(1.04) rotate(-2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1.08) rotate(0deg);
+  }
+}
+
+@keyframes rpsRightWin {
+  0% {
+    opacity: 0;
+    transform: translateX(150px) scale(0.75) rotate(10deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(24px) scale(1.12) rotate(-4deg);
+  }
+  70% {
+    transform: translateX(-8px) scale(1.04) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1.08) rotate(0deg);
+  }
+}
+
+@keyframes rpsLeftLose {
+  0% {
+    opacity: 0;
+    transform: translateX(-150px) scale(0.75) rotate(-10deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(-18px) scale(1.08) rotate(4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(72px) scale(0.6) rotate(18deg);
+  }
+}
+
+@keyframes rpsRightLose {
+  0% {
+    opacity: 0;
+    transform: translateX(150px) scale(0.75) rotate(10deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(18px) scale(1.08) rotate(-4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-72px) scale(0.6) rotate(-18deg);
+  }
+}
+
+@keyframes rpsLeftTie {
+  0% {
+    opacity: 0;
+    transform: translateX(-150px) scale(0.75);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(-16px) scale(1.05);
+  }
+  70% {
+    transform: translateX(-38px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-26px) scale(1);
+  }
+}
+
+@keyframes rpsRightTie {
+  0% {
+    opacity: 0;
+    transform: translateX(150px) scale(0.75);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(16px) scale(1.05);
+  }
+  70% {
+    transform: translateX(38px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(26px) scale(1);
+  }
+}
+
 /* Utility classes */
 .animate-slide-in-down {
   animation: slideInDown 0.5s ease-out;
@@ -426,4 +528,45 @@ body::after {
 
 .animate-hourglass {
   animation: hourglassFlip 1.8s ease-in-out infinite;
+}
+
+.rps-showdown-token {
+  position: absolute;
+  top: 50%;
+  font-size: 4rem;
+  line-height: 1;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.35));
+}
+
+.rps-showdown-left {
+  left: 50%;
+}
+
+.rps-showdown-right {
+  right: 50%;
+}
+
+.rps-showdown-left-win {
+  animation: rpsLeftWin 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.rps-showdown-right-win {
+  animation: rpsRightWin 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.rps-showdown-left-lose {
+  animation: rpsLeftLose 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.rps-showdown-right-lose {
+  animation: rpsRightLose 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.rps-showdown-left-tie {
+  animation: rpsLeftTie 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.rps-showdown-right-tie {
+  animation: rpsRightTie 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }

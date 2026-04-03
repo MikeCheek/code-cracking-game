@@ -22,6 +22,7 @@ export function ResultsPage({
   const opponentVote = Boolean(opponentProfile?.id && room.replayVotes?.[opponentProfile.id])
 
   const winnerTurns = sortedHistory.filter((entry) => entry.fromPlayerId === room.winnerId)
+  const liesDetected = sortedHistory.filter((entry) => entry.lieDetected).length
   const stats = {
     turns: winnerTurns.length,
     strikes: winnerTurns.reduce((sum, entry) => sum + entry.actualBulls, 0),
@@ -51,6 +52,11 @@ export function ResultsPage({
         </div>
       </article>
 
+      <article className="glass-panel rounded-2xl p-3 text-center">
+        <p className="text-xs text-slate-400">Lie Detector</p>
+        <p className="text-base font-semibold text-rose-200">{liesDetected} detected (max 3 per player)</p>
+      </article>
+
       <article className="glass-panel rounded-3xl p-3 overflow-y-auto">
         <p className="mb-2 text-sm font-semibold text-white">All guesses</p>
         {sortedHistory.length === 0 ? (
@@ -66,6 +72,11 @@ export function ResultsPage({
                 <p className="text-xs text-slate-300">
                   {room.profiles[entry.fromPlayerId]?.username ?? 'Player'} • {entry.actualBulls} Strikes • {entry.actualCows} Balls
                 </p>
+                {entry.lieDetected && (
+                  <p className="text-xs font-semibold text-rose-200">
+                    Lie detected: {room.profiles[entry.toPlayerId]?.username ?? 'Responder'} gave a false answer.
+                  </p>
+                )}
               </div>
             ))}
           </div>

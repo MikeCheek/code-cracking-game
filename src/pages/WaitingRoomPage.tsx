@@ -1,10 +1,15 @@
 import type { PlayerProfile, RoomData, UserProfile } from '../types'
+import { WORD_LANGUAGE_LABELS } from '../constants'
+import { getRoomGameMode, getRoomWordLanguage } from '../utils/gameMode'
 
 type WaitingRoomPageProps = {
   user: UserProfile
   room: RoomData
   myProfile: PlayerProfile | null
   opponentProfile: PlayerProfile | null
+  onLeaveRoom: () => void
+  onDeleteRoom: () => void
+  canDeleteRoom: boolean
   onCopyInvite: () => void
   onShareTelegram: () => void
   onShareWhatsApp: () => void
@@ -16,6 +21,9 @@ export function WaitingRoomPage({
   room,
   myProfile,
   opponentProfile,
+  onLeaveRoom,
+  onDeleteRoom,
+  canDeleteRoom,
   onCopyInvite,
   onShareTelegram,
   onShareWhatsApp,
@@ -23,8 +31,10 @@ export function WaitingRoomPage({
 }: WaitingRoomPageProps) {
   const roomTags = [
     room.settings.isPrivate ? 'Private' : 'Public',
-    `${room.settings.codeLength} digits`,
-    room.settings.allowDuplicates ? 'Duplicates on' : 'Unique digits',
+    getRoomGameMode(room) === 'words' ? `${room.settings.codeLength} letters` : `${room.settings.codeLength} digits`,
+    getRoomGameMode(room) === 'words'
+      ? `${WORD_LANGUAGE_LABELS[getRoomWordLanguage(room)]} words`
+      : room.settings.allowDuplicates ? 'Duplicates on' : 'Unique digits',
     room.settings.allowLies ? 'Lies enabled' : 'No lies',
   ]
 
@@ -38,6 +48,24 @@ export function WaitingRoomPage({
               {tag}
             </span>
           ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onLeaveRoom}
+            className="rounded-xl border border-rose-300/25 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/15"
+          >
+            Leave room
+          </button>
+          {canDeleteRoom && (
+            <button
+              type="button"
+              onClick={onDeleteRoom}
+              className="rounded-xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-3 py-2 text-xs font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
+            >
+              Delete room
+            </button>
+          )}
         </div>
       </article>
 

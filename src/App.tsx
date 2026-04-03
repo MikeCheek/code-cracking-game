@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import toast, { Toaster, ToastBar } from 'react-hot-toast'
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom'
-import { DEFAULT_CODE_LENGTH } from './constants'
+import { DEFAULT_CODE_LENGTH, DEFAULT_GAME_MODE, DEFAULT_WORD_LANGUAGE, MAX_WORD_CODE_LENGTH } from './constants'
 import {
   answerGuess,
   chooseRps,
@@ -13,6 +13,7 @@ import {
   keepWaitingForRejoin,
   leaveRoom as leaveRoomRealtime,
   lockSecret,
+  finalizeRpsRound,
   votePlayAgain,
   unlockSecret,
   submitGuess,
@@ -34,7 +35,9 @@ import { ResultsPage } from './pages/ResultsPage'
 import { WaitingRoomPage } from './pages/WaitingRoomPage'
 import { WelcomePage } from './pages/WelcomePage'
 import { generateRoomName } from './utils/roomName'
-import type { AudioSettings, LobbyRoomSummary, RoomData, RpsChoice, UserProfile } from './types'
+import { getRoomGameMode } from './utils/gameMode'
+import { normalizeWordInput } from './lib/wordValidation'
+import type { AudioSettings, GameMode, LobbyRoomSummary, RoomData, RpsChoice, UserProfile, WordLanguage } from './types'
 
 const initialTelegramUser = typeof window !== 'undefined' ? getTelegramUserProfile() : null
 const initialStoredUser = initialTelegramUser ?? loadUser()
@@ -46,6 +49,20 @@ const UI_THEME_OPTIONS: Array<{ id: AudioSettings['uiTheme']; label: string }> =
   { id: 'arcade-cyan', label: 'Arcade Cyan' },
   { id: 'sunset-pop', label: 'Sunset Pop' },
 ]
+
+const RPS_SYMBOLS: Record<RpsChoice, string> = {
+  rock: '🪨',
+  paper: '📄',
+  scissors: '✂️',
+}
+
+type RpsShowdownState = {
+  hostChoice: RpsChoice
+  guestChoice: RpsChoice
+  result: 'host' | 'guest' | 'tie'
+  hostName: string
+  guestName: string
+}
 
 function App() {
   const navigate = useNavigate()
@@ -66,6 +83,8 @@ function App() {
 
   const [codeLength, setCodeLength] = useState<number>(DEFAULT_CODE_LENGTH)
   const [allowDuplicates, setAllowDuplicates] = useState(false)
+  const [selectedGameMode, setSelectedGameMode] = useState<GameMode>(DEFAULT_GAME_MODE)
+  const [selectedWordLanguage, setSelectedWordLanguage] = useState<WordLanguage>(DEFAULT_WORD_LANGUAGE)
   const [isPrivate, setIsPrivate] = useState(false)
   const [allowLies, setAllowLies] = useState(true)
   const [newRoomName, setNewRoomName] = useState(() => generateRoomName(initialStoredUser?.username))
@@ -76,6 +95,8 @@ function App() {
   const [secretInput, setSecretInput] = useState('')
   const [secretLocked, setSecretLocked] = useState(false)
   const [guessInput, setGuessInput] = useState('')
+  const [isCheckingWordSecret, setIsCheckingWordSecret] = useState(false)
+  const [isCheckingWordGuess, setIsCheckingWordGuess] = useState(false)
   const [claimedBulls, setClaimedBulls] = useState(0)
   const [claimedCows, setClaimedCows] = useState(0)
 
@@ -96,11 +117,22 @@ function App() {
   const [isFirstVisit, setIsFirstVisit] = useState(!hasAudioConsent())
   const [dismissedPausePromptAt, setDismissedPausePromptAt] = useState<number | null>(null)
   const [lastLeftRoomId, setLastLeftRoomId] = useState<string | null>(null)
+  const [rpsShowdown, setRpsShowdown] = useState<RpsShowdownState | null>(null)
   const inviteJoinHandledRef = useRef<string | null>(null)
+  const lastShownRpsResultAtRef = useRef<number | null>(null)
 
   const signedInUserId = user?.id ?? null
   const inRoomsRoute = location.pathname === '/rooms'
   const isWelcomeRoute = location.pathname === '/welcome'
+
+  useEffect(() => {
+    if (selectedGameMode === 'words' && codeLength > MAX_WORD_CODE_LENGTH) {
+      setCodeLength(MAX_WORD_CODE_LENGTH)
+    }
+    if (selectedGameMode === 'numbers' && codeLength > 5) {
+      setCodeLength(5)
+    }
+  }, [codeLength, selectedGameMode])
 
   const isHotseatMode = Boolean(
     room &&
@@ -148,6 +180,7 @@ function App() {
     hotseatPendingPlayerId &&
     hotseatRevealedPlayerId !== hotseatPendingPlayerId,
   )
+  const activeRpsRoomId = room?.status === 'rps' ? room.id : null
 
   useEffect(() => {
     configureAudio(audioSettings)
@@ -210,8 +243,26 @@ function App() {
         setRoom(null)
         setHotseatGuestProfile(null)
         setHotseatRevealedPlayerId(null)
+        lastShownRpsResultAtRef.current = null
         navigate('/rooms', { replace: true })
         return
+      }
+
+      if (
+        nextRoom.lastRpsResult &&
+        nextRoom.lastRpsResult.at !== lastShownRpsResultAtRef.current &&
+        nextRoom.guestId
+      ) {
+        const hostName = nextRoom.profiles[nextRoom.hostId]?.username ?? 'Host'
+        const guestName = nextRoom.profiles[nextRoom.guestId]?.username ?? 'Guest'
+        setRpsShowdown({
+          hostChoice: nextRoom.lastRpsResult.hostChoice,
+          guestChoice: nextRoom.lastRpsResult.guestChoice,
+          result: nextRoom.lastRpsResult.winner,
+          hostName,
+          guestName,
+        })
+        lastShownRpsResultAtRef.current = nextRoom.lastRpsResult.at
       }
 
       if (nextRoom.status === 'rps') {
@@ -230,6 +281,18 @@ function App() {
 
     return unsub
   }, [navigate, routeRoomId])
+
+  useEffect(() => {
+    if (!activeRpsRoomId) return
+
+    const tryFinalize = () => {
+      void finalizeRpsRound(activeRpsRoomId)
+    }
+
+    tryFinalize()
+    const interval = setInterval(tryFinalize, 300)
+    return () => clearInterval(interval)
+  }, [activeRpsRoomId])
 
   useEffect(() => {
     if (!routeRoomId || !room || room.id !== routeRoomId) return
@@ -310,7 +373,17 @@ function App() {
   useEffect(() => {
     lastHandledHistoryIdRef.current = null
     lastSeenRpsRoundRef.current = null
+    lastShownRpsResultAtRef.current = null
+    setRpsShowdown(null)
   }, [room?.id])
+
+  useEffect(() => {
+    if (!rpsShowdown) return
+    const timer = setTimeout(() => {
+      setRpsShowdown(null)
+    }, 2300)
+    return () => clearTimeout(timer)
+  }, [rpsShowdown])
 
   useEffect(() => {
     const latestRecord = sortedHistory[sortedHistory.length - 1]
@@ -407,6 +480,8 @@ function App() {
           allowDuplicates,
           isPrivate,
           allowLies,
+          gameMode: selectedGameMode,
+          ...(selectedGameMode === 'words' ? { wordLanguage: selectedWordLanguage } : {}),
         },
         newRoomPassword,
         newRoomName,
@@ -549,13 +624,23 @@ function App() {
       toast('Code is already locked.')
       return
     }
+
+    const shouldValidateWord = getRoomGameMode(room) === 'words'
+    if (shouldValidateWord) {
+      setIsCheckingWordSecret(true)
+    }
+
     try {
-      await lockSecret(room.id, currentPlayerId, secretInput.trim())
+      await lockSecret(room.id, currentPlayerId, secretInput.trim(), room.settings)
       setSecretLocked(true)
       toast.success('Code locked! Opponent will see a notification.')
       playSuccess()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not lock secret')
+    } finally {
+      if (shouldValidateWord) {
+        setIsCheckingWordSecret(false)
+      }
     }
   }
 
@@ -573,8 +658,14 @@ function App() {
 
   const onSubmitGuess = async () => {
     if (!room || !currentPlayerId) return
+
+    const shouldValidateWord = getRoomGameMode(room) === 'words'
+    if (shouldValidateWord) {
+      setIsCheckingWordGuess(true)
+    }
+
     try {
-      await submitGuess(room.id, currentPlayerId, guessInput.trim())
+      await submitGuess(room.id, currentPlayerId, guessInput.trim(), room.settings)
       setGuessInput('')
       if (isHotseatMode) {
         setHotseatRevealedPlayerId(null)
@@ -582,6 +673,10 @@ function App() {
       playClick()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not submit guess')
+    } finally {
+      if (shouldValidateWord) {
+        setIsCheckingWordGuess(false)
+      }
     }
   }
 
@@ -620,6 +715,8 @@ function App() {
     setSecretInput('')
     setSecretLocked(false)
     setGuessInput('')
+    setIsCheckingWordSecret(false)
+    setIsCheckingWordGuess(false)
     navigate('/rooms')
   }
 
@@ -765,12 +862,22 @@ function App() {
 
   const onSecretInputChange = (value: string) => {
     if (isCurrentSecretLocked || !room) return
+    if (getRoomGameMode(room) === 'words') {
+      setSecretInput(normalizeWordInput(value, room.settings.codeLength))
+      return
+    }
+
     const digitsOnly = value.replace(/\D/g, '').slice(0, room.settings.codeLength)
     setSecretInput(digitsOnly)
   }
 
   const onGuessInputChange = (value: string) => {
     if (!room) return
+    if (getRoomGameMode(room) === 'words') {
+      setGuessInput(normalizeWordInput(value, room.settings.codeLength))
+      return
+    }
+
     const digitsOnly = value.replace(/\D/g, '').slice(0, room.settings.codeLength)
     setGuessInput(digitsOnly)
   }
@@ -786,8 +893,12 @@ function App() {
     setRpsChoice('')
     setGuessInput('')
     setSecretInput('')
+    setIsCheckingWordSecret(false)
+    setIsCheckingWordGuess(false)
     setClaimedBulls(0)
     setClaimedCows(0)
+    setSelectedGameMode(DEFAULT_GAME_MODE)
+    setSelectedWordLanguage(DEFAULT_WORD_LANGUAGE)
     setShowSettingsPanel(false)
     setShowRulesPanel(false)
     setShowUserMenu(false)
@@ -1009,6 +1120,8 @@ function App() {
                   newRoomName={newRoomName}
                   newRoomPassword={newRoomPassword}
                   joinPassword={joinPassword}
+                  selectedGameMode={selectedGameMode}
+                  selectedWordLanguage={selectedWordLanguage}
                   onCodeLengthChange={setCodeLength}
                   onAllowDuplicatesChange={setAllowDuplicates}
                   onIsPrivateChange={(nextPrivate) => {
@@ -1018,6 +1131,8 @@ function App() {
                     }
                   }}
                   onAllowLiesChange={setAllowLies}
+                  onGameModeChange={setSelectedGameMode}
+                  onWordLanguageChange={setSelectedWordLanguage}
                   onNewRoomNameChange={setNewRoomName}
                   onRegenerateRoomName={() => setNewRoomName(generateRoomName(user.username))}
                   onNewRoomPasswordChange={setNewRoomPassword}
@@ -1046,6 +1161,9 @@ function App() {
                     room={room}
                     myProfile={myProfile}
                     opponentProfile={opponentProfile}
+                    onLeaveRoom={requestLeaveRoom}
+                    onDeleteRoom={() => onDeleteHostedRoom(room.id)}
+                    canDeleteRoom={room.hostId === user.id}
                     onCopyInvite={onCopyInvite}
                     onShareTelegram={onShareInviteTelegram}
                     onShareWhatsApp={onShareInviteWhatsApp}
@@ -1094,6 +1212,8 @@ function App() {
                       onLeaveRoom={requestLeaveRoom}
                       onDeleteRoom={() => onDeleteHostedRoom(room.id)}
                       canDeleteRoom={room.hostId === user.id}
+                      isCheckingWordSecret={isCheckingWordSecret}
+                      isCheckingWordGuess={isCheckingWordGuess}
                     />
                   ) : (
                     <section className="glass-panel rounded-3xl p-6">
@@ -1363,6 +1483,42 @@ function App() {
             <p className="mt-2 text-sm text-slate-300">Pass the phone, then tap to reveal this player's view.</p>
             <p className="mt-5 rounded-xl bg-fuchsia-300/20 px-4 py-2 text-sm font-semibold text-fuchsia-100">Tap to continue</p>
           </button>
+        </div>
+      )}
+
+      {rpsShowdown && (
+        <div className="fixed inset-0 z-[995] flex items-center justify-center bg-slate-950/88 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-xl rounded-3xl px-6 py-10 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.34em] text-fuchsia-300">Rock Paper Scissors</p>
+            <p className="mt-2 text-sm text-slate-300">{rpsShowdown.result === 'tie' ? 'Tie round. Play again.' : 'Winner gets first turn'}</p>
+
+            <div className="relative mt-6 h-28 overflow-hidden">
+              <div
+                className={`rps-showdown-token rps-showdown-left ${
+                  rpsShowdown.result === 'host' ? 'rps-showdown-left-win' : rpsShowdown.result === 'tie' ? 'rps-showdown-left-tie' : 'rps-showdown-left-lose'
+                }`}
+                aria-label={`${rpsShowdown.hostName} played ${rpsShowdown.hostChoice}`}
+              >
+                {RPS_SYMBOLS[rpsShowdown.hostChoice]}
+              </div>
+              <div
+                className={`rps-showdown-token rps-showdown-right ${
+                  rpsShowdown.result === 'guest' ? 'rps-showdown-right-win' : rpsShowdown.result === 'tie' ? 'rps-showdown-right-tie' : 'rps-showdown-right-lose'
+                }`}
+                aria-label={`${rpsShowdown.guestName} played ${rpsShowdown.guestChoice}`}
+              >
+                {RPS_SYMBOLS[rpsShowdown.guestChoice]}
+              </div>
+            </div>
+
+            <p className="mt-3 text-sm font-semibold text-cyan-200">
+              {rpsShowdown.result === 'host'
+                ? `${rpsShowdown.hostName} wins the clash!`
+                : rpsShowdown.result === 'guest'
+                  ? `${rpsShowdown.guestName} wins the clash!`
+                  : `${rpsShowdown.hostName} and ${rpsShowdown.guestName} tied!`}
+            </p>
+          </div>
         </div>
       )}
 

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GuessRecord, PlayerProfile, RoomData, RpsChoice } from '../types'
+import { WORD_LANGUAGE_LABELS } from '../constants'
+import { getRoomGameMode, getRoomWordLanguage } from '../utils/gameMode'
 
 const RPS_ITEMS: Array<{ value: RpsChoice; icon: string; label: string }> = [
   { value: 'rock', icon: '🪨', label: 'Rock' },
@@ -8,6 +10,7 @@ const RPS_ITEMS: Array<{ value: RpsChoice; icon: string; label: string }> = [
 ]
 
 const DIGIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
+const LETTER_KEYS = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm'] as const
 type DigitKind = 'strike' | 'ball' | 'miss' | 'code'
 
 type GameplayPageProps = {
@@ -36,6 +39,8 @@ type GameplayPageProps = {
   onLeaveRoom: () => void
   onDeleteRoom: () => void
   canDeleteRoom: boolean
+  isCheckingWordSecret: boolean
+  isCheckingWordGuess: boolean
 }
 
 export function GameplayPage({
@@ -64,9 +69,14 @@ export function GameplayPage({
   onLeaveRoom,
   onDeleteRoom,
   canDeleteRoom,
+  isCheckingWordSecret,
+  isCheckingWordGuess,
 }: GameplayPageProps) {
   const [showGameMenu, setShowGameMenu] = useState(false)
+  const [rpsNow, setRpsNow] = useState(0)
   const gameMenuRef = useRef<HTMLDivElement | null>(null)
+  const isWordGame = getRoomGameMode(room) === 'words'
+  const wordLanguageLabel = WORD_LANGUAGE_LABELS[getRoomWordLanguage(room)]
   const isMyTurnCard = room.currentTurnPlayerId && myProfile?.id === room.currentTurnPlayerId
   const isOpponentTurnCard = room.currentTurnPlayerId && opponentProfile?.id === room.currentTurnPlayerId
   const maxCodeLength = room.settings.codeLength
@@ -83,9 +93,17 @@ export function GameplayPage({
     return () => window.removeEventListener('pointerdown', onPointerDown)
   }, [])
 
-  const appendDigit = (current: string, digit: string) => {
+  useEffect(() => {
+    if (room.status !== 'rps' || !room.rpsDeadlineAt) return
+    const tick = () => setRpsNow(Date.now())
+    tick()
+    const timer = setInterval(tick, 100)
+    return () => clearInterval(timer)
+  }, [room.rpsDeadlineAt, room.status])
+
+  const appendSymbol = (current: string, symbol: string) => {
     if (current.length >= maxCodeLength) return
-    return `${current}${digit}`
+    return `${current}${symbol}`
   }
 
   const numberOptions = Array.from({ length: maxCodeLength + 1 }, (_, index) => index)
@@ -144,6 +162,9 @@ export function GameplayPage({
   }
 
   const pendingKinds = getDigitKinds(room.pendingGuess?.guess ?? '', claimedBulls, claimedCows, mySecret)
+  const rpsTimeLeftMs = room.status === 'rps' && room.rpsDeadlineAt ? Math.max(0, room.rpsDeadlineAt - rpsNow) : 5000
+  const rpsTimeLeftSeconds = Math.ceil(rpsTimeLeftMs / 1000)
+  const rpsProgress = Math.max(0, Math.min(1, rpsTimeLeftMs / 5000))
 
   return (
     <section className="mx-auto grid w-full max-w-4xl gap-3">
@@ -200,6 +221,7 @@ export function GameplayPage({
         <div className={`rounded-2xl border p-3 ${isMyTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
           <p className="text-sm font-semibold text-white">{myProfile?.avatar} {myProfile?.username ?? 'You'}</p>
           <p className="mt-1 text-xs text-slate-300">{isMyTurnCard ? 'Current player' : 'Waiting'}</p>
+          <p className="mt-1 text-xs text-rose-200">Lies: {room.penalties[myProfile?.id ?? ''] ?? 0} / 3</p>
           {mySecret && (
             <div className="mt-2 flex flex-wrap gap-2">
               {mySecret.split('').map((digit, index) => (
@@ -216,6 +238,7 @@ export function GameplayPage({
         <div className={`rounded-2xl border p-3 ${isOpponentTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
           <p className="text-sm font-semibold text-white">{opponentProfile?.avatar ?? '❔'} {opponentProfile?.username ?? 'Opponent'}</p>
           <p className="mt-1 text-xs text-slate-300">{isOpponentTurnCard ? 'Current player' : 'Waiting'}</p>
+          <p className="mt-1 text-xs text-rose-200">Lies: {room.penalties[opponentProfile?.id ?? ''] ?? 0} / 3</p>
         </div>
       </article>
 
@@ -224,96 +247,79 @@ export function GameplayPage({
           <p className="text-sm font-semibold text-white">Current action</p>
 
           {room.status === 'rps' && (
-            <div className="mt-3 flex gap-2">
-              {RPS_ITEMS.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => onRpsChoice(item.value)}
-                  className={`rounded-2xl px-4 py-3 text-2xl transition ${
-                    rpsChoice === item.value
-                      ? 'bg-gradient-to-r from-fuchsia-300 to-violet-400 text-slate-950'
-                      : 'border border-white/10 bg-white/5 text-white hover:bg-white/10'
-                  }`}
-                  title={item.label}
-                >
-                  {item.icon}
-                </button>
-              ))}
-            </div>
+            <p className="mt-3 text-sm text-slate-300">Choose Rock, Paper, or Scissors in the full-screen modal. You can change until timer ends.</p>
           )}
 
           {room.status === 'secrets' && (
             <div className="mt-3 space-y-2">
-              <div className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-center font-mono text-2xl tracking-[0.35em] text-slate-100">
-                {(secretInput || '').padEnd(maxCodeLength, '•')}
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {DIGIT_KEYS.map((digit) => (
-                  <button
-                    key={`secret-digit-${digit}`}
-                    type="button"
-                    onClick={() => onSecretInputChange(appendDigit(secretInput, digit) ?? secretInput)}
+              {isWordGame ? (
+                <>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Secret word</label>
+                  <input
+                    value={secretInput.toUpperCase()}
+                    onChange={(event) => onSecretInputChange(event.target.value)}
                     disabled={secretLocked}
-                    className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    {digit}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onSecretInputChange(secretInput.slice(0, -1))}
-                  disabled={secretLocked || secretInput.length === 0}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  Backspace
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSecretInputChange('')}
-                  disabled={secretLocked || secretInput.length === 0}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={onUnlockSecret}
-                  disabled={!secretLocked}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-                >
-                  Unlock
-                </button>
-                <button
-                  type="button"
-                  onClick={onSubmitSecret}
-                  disabled={secretLocked || secretInput.length !== maxCodeLength}
-                  className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
-                >
-                  {secretLocked ? 'Code locked' : 'Lock code'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {room.status === 'playing' && (
-            <div className="mt-3 space-y-3">
-              {myTurn && !room.pendingGuess && (
+                    maxLength={maxCodeLength}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder={`Enter a ${wordLanguageLabel.toLowerCase()} word`}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-center font-mono text-2xl tracking-[0.18em] text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60 disabled:opacity-55"
+                  />
+                  <p className="text-xs text-slate-300">Use a real {wordLanguageLabel.toLowerCase()} word. Letters only.</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSecretInputChange(secretInput.slice(0, -1))}
+                      disabled={secretLocked || secretInput.length === 0}
+                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      Backspace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSecretInputChange('')}
+                      disabled={secretLocked || secretInput.length === 0}
+                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={onUnlockSecret}
+                      disabled={!secretLocked || isCheckingWordSecret}
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      Unlock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onSubmitSecret}
+                      disabled={secretLocked || secretInput.length !== maxCodeLength || isCheckingWordSecret}
+                      className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
+                    >
+                      {isCheckingWordSecret ? 'Checking word...' : secretLocked ? 'Word locked' : 'Lock word'}
+                    </button>
+                  </div>
+                  {isCheckingWordSecret && (
+                    <p className="text-xs font-semibold text-cyan-200 animate-pulse-soft">Validating word...</p>
+                  )}
+                </>
+              ) : (
                 <>
                   <div className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-center font-mono text-2xl tracking-[0.35em] text-slate-100">
-                    {(guessInput || '').padEnd(maxCodeLength, '•')}
+                    {(secretInput || '').padEnd(maxCodeLength, '•')}
                   </div>
                   <div className="grid grid-cols-5 gap-2">
                     {DIGIT_KEYS.map((digit) => (
                       <button
-                        key={`guess-digit-${digit}`}
+                        key={`secret-digit-${digit}`}
                         type="button"
-                        onClick={() => onGuessInputChange(appendDigit(guessInput, digit) ?? guessInput)}
-                        className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+                        onClick={() => onSecretInputChange(appendSymbol(secretInput, digit) ?? secretInput)}
+                        disabled={secretLocked}
+                        className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         {digit}
                       </button>
@@ -322,29 +328,150 @@ export function GameplayPage({
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => onGuessInputChange(guessInput.slice(0, -1))}
-                      disabled={guessInput.length === 0}
+                      onClick={() => onSecretInputChange(secretInput.slice(0, -1))}
+                      disabled={secretLocked || secretInput.length === 0}
                       className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       Backspace
                     </button>
                     <button
                       type="button"
-                      onClick={() => onGuessInputChange('')}
-                      disabled={guessInput.length === 0}
+                      onClick={() => onSecretInputChange('')}
+                      disabled={secretLocked || secretInput.length === 0}
                       className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       Clear
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={onSubmitGuess}
-                    disabled={guessInput.length !== maxCodeLength}
-                    className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
-                  >
-                    Submit guess
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={onUnlockSecret}
+                      disabled={!secretLocked}
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      Unlock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onSubmitSecret}
+                      disabled={secretLocked || secretInput.length !== maxCodeLength}
+                      className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
+                    >
+                      {secretLocked ? 'Code locked' : 'Lock code'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {room.status === 'playing' && (
+            <div className="mt-3 space-y-3">
+              {myTurn && !room.pendingGuess && (
+                <>
+                  {isWordGame ? (
+                    <>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Guess word</label>
+                      <input
+                        value={guessInput.toUpperCase()}
+                        onChange={(event) => onGuessInputChange(event.target.value)}
+                        maxLength={maxCodeLength}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        placeholder={`Type a ${wordLanguageLabel.toLowerCase()} word`}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-center font-mono text-2xl tracking-[0.18em] text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
+                      />
+                      <p className="text-xs text-slate-300">Only real {wordLanguageLabel.toLowerCase()} words can be submitted.</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onGuessInputChange(guessInput.slice(0, -1))}
+                          disabled={guessInput.length === 0}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          Backspace
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onGuessInputChange('')}
+                          disabled={guessInput.length === 0}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onSubmitGuess}
+                        disabled={guessInput.length !== maxCodeLength || isCheckingWordGuess}
+                        className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
+                      >
+                        {isCheckingWordGuess ? 'Checking word...' : 'Submit word'}
+                      </button>
+                      {isCheckingWordGuess && (
+                        <p className="text-xs font-semibold text-cyan-200 animate-pulse-soft">Validating word...</p>
+                      )}
+                      <div className="grid grid-cols-6 gap-2 text-center sm:grid-cols-8">
+                        {LETTER_KEYS.map((letter) => (
+                          <button
+                            key={`guess-letter-${letter}`}
+                            type="button"
+                            onClick={() => onGuessInputChange(appendSymbol(guessInput, letter) ?? guessInput)}
+                            disabled={isCheckingWordGuess}
+                            className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-xs font-bold uppercase text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {letter}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-center font-mono text-2xl tracking-[0.35em] text-slate-100">
+                        {(guessInput || '').padEnd(maxCodeLength, '•')}
+                      </div>
+                      <div className="grid grid-cols-5 gap-2">
+                        {DIGIT_KEYS.map((digit) => (
+                          <button
+                            key={`guess-digit-${digit}`}
+                            type="button"
+                            onClick={() => onGuessInputChange(appendSymbol(guessInput, digit) ?? guessInput)}
+                            className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+                          >
+                            {digit}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onGuessInputChange(guessInput.slice(0, -1))}
+                          disabled={guessInput.length === 0}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          Backspace
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onGuessInputChange('')}
+                          disabled={guessInput.length === 0}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onSubmitGuess}
+                        disabled={guessInput.length !== maxCodeLength}
+                        className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
+                      >
+                        Submit guess
+                      </button>
+                    </>
+                  )}
                 </>
               )}
 
@@ -362,8 +489,8 @@ export function GameplayPage({
                     ))}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-semibold">
-                    <span className="text-emerald-200">Green = Strike</span>
-                    <span className="text-amber-200">Orange = Ball</span>
+                    <span className="text-emerald-200">Green = Exact match</span>
+                    <span className="text-amber-200">Orange = Wrong place</span>
                   </div>
                   <div className="mt-3 space-y-3">
                     <div>
@@ -457,6 +584,11 @@ export function GameplayPage({
                     <p className="text-xs text-slate-300">
                       {room.profiles[item.fromPlayerId]?.username ?? 'Player'} • {item.actualBulls} Strikes • {item.actualCows} Balls
                     </p>
+                    {item.lieDetected && (
+                      <p className="text-xs font-semibold text-rose-200">
+                        Lie detected: {room.profiles[item.toPlayerId]?.username ?? 'Responder'} gave a false answer.
+                      </p>
+                    )}
                   </div>
                 )
               })}
@@ -464,6 +596,54 @@ export function GameplayPage({
           )}
         </div>
       </article>
+
+      {room.status === 'rps' && (
+        <div className="fixed inset-0 z-[980] flex items-center justify-center bg-slate-950/88 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-2xl rounded-3xl p-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-fuchsia-300">Rock Paper Scissors</p>
+            <h3 className="mt-2 text-2xl font-black text-white">Pick your symbol</h3>
+            <p className="mt-2 text-sm text-slate-300">Winner starts first. A tie triggers another round.</p>
+
+            <div className="mx-auto mt-5 w-full max-w-md">
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-cyan-200">
+                <span>Locking in...</span>
+                <span>{rpsTimeLeftSeconds}s</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/5">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-300 via-cyan-300 to-fuchsia-300 transition-[width] duration-100"
+                  style={{ width: `${rpsProgress * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {RPS_ITEMS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => onRpsChoice(item.value)}
+                  className={`rounded-3xl border px-3 py-5 text-center transition ${
+                    rpsChoice === item.value
+                      ? 'border-fuchsia-200/45 bg-gradient-to-r from-fuchsia-300 to-violet-400 text-slate-950'
+                      : 'border-white/10 bg-white/5 text-white hover:bg-white/10'
+                  }`}
+                  title={item.label}
+                >
+                  <div className="text-5xl">{item.icon}</div>
+                  <div className="mt-2 text-sm font-semibold">{item.label}</div>
+                </button>
+              ))}
+            </div>
+
+            {rpsChoice ? (
+              <p className="mt-4 text-sm font-semibold text-cyan-200">You picked {rpsChoice}. You can still change before timer ends.</p>
+            ) : (
+              <p className="mt-4 text-sm font-semibold text-cyan-200">No choice yet. Random pick if timer reaches zero.</p>
+            )}
+          </div>
+        </div>
+      )}
 
     </section>
   )

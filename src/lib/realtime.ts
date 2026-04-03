@@ -8,16 +8,84 @@ import {
   set,
   type Unsubscribe,
 } from 'firebase/database'
-import { MAX_PENALTIES } from '../constants'
+import { DEFAULT_WORD_LANGUAGE, MAX_PENALTIES } from '../constants'
 import { db } from './firebase'
 import { decideRpsWinner, evaluateGuess, isValidCombination } from '../utils/game'
 import { normalizeRoomName } from '../utils/roomName'
 import type { GuessRecord, LobbyRoomSummary, RoomData, RoomSettings, RpsChoice, UserProfile } from '../types'
+import { isRealWord, normalizeWordInput } from './wordValidation'
 
 const roomsRef = ref(db, 'rooms')
+const RPS_ROUND_MS = 5000
+const RPS_CHOICES: RpsChoice[] = ['rock', 'paper', 'scissors']
 
 function roomRef(roomId: string) {
   return child(roomsRef, roomId)
+}
+
+function randomRpsChoice(): RpsChoice {
+  return RPS_CHOICES[Math.floor(Math.random() * RPS_CHOICES.length)]
+}
+
+function resolveRpsRound(room: RoomData): RoomData {
+  if (!room.guestId) return room
+
+  room.rpsChoices = room.rpsChoices ?? {}
+  const hostChoice = room.rpsChoices[room.hostId] ?? randomRpsChoice()
+  const guestChoice = room.rpsChoices[room.guestId] ?? randomRpsChoice()
+
+  const winner = decideRpsWinner(hostChoice, guestChoice)
+  room.lastRpsResult = {
+    round: room.rpsRound,
+    hostChoice,
+    guestChoice,
+    winner: winner === 0 ? 'tie' : winner === 1 ? 'host' : 'guest',
+    at: Date.now(),
+  }
+
+  delete room.rpsDeadlineAt
+  room.rpsChoices = {}
+
+  if (winner === 0) {
+    room.rpsRound += 1
+    room.message = 'RPS tie! Play again.'
+    return room
+  }
+
+  room.starterPlayerId = winner === 1 ? room.hostId : room.guestId
+  room.currentTurnPlayerId = room.starterPlayerId
+  room.status = 'secrets'
+  room.message = 'RPS finished. Set your secret codes.'
+  return room
+}
+
+async function validateCodeForRoom(
+  value: string,
+  settings: RoomSettings,
+  label: 'secret' | 'guess',
+): Promise<string> {
+  const gameMode = settings.gameMode ?? 'numbers'
+
+  if (gameMode === 'words') {
+    const normalizedWord = normalizeWordInput(value, settings.codeLength)
+    if (normalizedWord.length !== settings.codeLength) {
+      throw new Error(`Invalid ${label} for this room settings`)
+    }
+
+    const language = settings.wordLanguage ?? DEFAULT_WORD_LANGUAGE
+    const isValidWord = await isRealWord(language, normalizedWord)
+    if (!isValidWord) {
+      throw new Error(`That ${label} is not a valid dictionary word`)
+    }
+
+    return normalizedWord
+  }
+
+  if (!isValidCombination(value, settings.codeLength, settings.allowDuplicates)) {
+    throw new Error(`Invalid ${label} for this room settings`)
+  }
+
+  return value
 }
 
 async function sha256(value: string): Promise<string> {
@@ -186,6 +254,8 @@ export function subscribeLobby(callback: (rooms: LobbyRoomSummary[]) => void): U
         id,
         roomName: room.roomName ?? `${room.profiles[room.hostId]?.username ?? 'Host'}'s Room`,
         status: room.status,
+        gameMode: room.settings.gameMode ?? 'numbers',
+        wordLanguage: room.settings.wordLanguage,
         isPrivate: room.settings.isPrivate,
         hostId: room.hostId,
         hostName: room.profiles[room.hostId]?.username ?? 'Host',
@@ -283,41 +353,42 @@ export async function chooseRps(roomId: string, userId: string, choice: RpsChoic
     if (!room.guestId) return room
     if (room.pausedByDisconnect?.playerId) return room
 
+    const now = Date.now()
+    if (!room.rpsDeadlineAt) {
+      room.rpsDeadlineAt = now + RPS_ROUND_MS
+      room.message = 'RPS countdown started. You can change your pick until time is up.'
+    }
+    if (now > room.rpsDeadlineAt) {
+      return resolveRpsRound(room)
+    }
+
     room.rpsChoices = room.rpsChoices ?? {}
     room.rpsChoices[userId] = choice
-
-    const hostChoice = room.rpsChoices[room.hostId]
-    const guestChoice = room.rpsChoices[room.guestId]
-
-    if (hostChoice && guestChoice) {
-      const winner = decideRpsWinner(hostChoice, guestChoice)
-      if (winner === 0) {
-        room.rpsRound += 1
-        room.rpsChoices = {}
-        room.message = 'RPS tie! Play again.'
-      } else {
-        room.starterPlayerId = winner === 1 ? room.hostId : room.guestId
-        room.currentTurnPlayerId = room.starterPlayerId
-        room.status = 'secrets'
-        room.message = 'RPS finished. Set your secret codes.'
-      }
-    }
 
     return room
   })
 }
 
-export async function submitSecret(roomId: string, userId: string, secret: string): Promise<void> {
+export async function finalizeRpsRound(roomId: string): Promise<void> {
+  await runTransaction(roomRef(roomId), (room: RoomData | null) => {
+    if (!room || room.status !== 'rps') return room
+    if (!room.guestId) return room
+    if (room.pausedByDisconnect?.playerId) return room
+    if (!room.rpsDeadlineAt) return room
+    if (Date.now() < room.rpsDeadlineAt) return room
+    return resolveRpsRound(room)
+  })
+}
+
+export async function submitSecret(roomId: string, userId: string, secret: string, settings: RoomSettings): Promise<void> {
+  const normalizedSecret = await validateCodeForRoom(secret, settings, 'secret')
+
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'secrets' || !room.guestId) return room
     if (room.pausedByDisconnect?.playerId) return room
 
-    if (!isValidCombination(secret, room.settings.codeLength, room.settings.allowDuplicates)) {
-      throw new Error('Invalid secret for this room settings')
-    }
-
     room.secrets = room.secrets ?? {}
-    room.secrets[userId] = secret
+    room.secrets[userId] = normalizedSecret
 
     const hasHost = Boolean(room.secrets[room.hostId])
     const hasGuest = Boolean(room.secrets[room.guestId])
@@ -331,21 +402,19 @@ export async function submitSecret(roomId: string, userId: string, secret: strin
   })
 }
 
-export async function submitGuess(roomId: string, userId: string, guess: string): Promise<void> {
+export async function submitGuess(roomId: string, userId: string, guess: string, settings: RoomSettings): Promise<void> {
+  const normalizedGuess = await validateCodeForRoom(guess, settings, 'guess')
+
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'playing' || !room.guestId) return room
     if (room.pausedByDisconnect?.playerId) return room
     if (room.currentTurnPlayerId !== userId) return room
     if (room.pendingGuess) return room
 
-    if (!isValidCombination(guess, room.settings.codeLength, room.settings.allowDuplicates)) {
-      throw new Error('Invalid guess')
-    }
-
     const turnNumber = (Object.keys(room.guessHistory ?? {}).length ?? 0) + 1
     room.pendingGuess = {
       fromPlayerId: userId,
-      guess,
+      guess: normalizedGuess,
       turnNumber,
       at: Date.now(),
     }
@@ -478,16 +547,14 @@ export async function verifyPassword(roomId: string, password: string): Promise<
   return (room.settings.passwordHash ?? '') === (hash ?? '')
 }
 
-export async function lockSecret(roomId: string, userId: string, secret: string): Promise<void> {
+export async function lockSecret(roomId: string, userId: string, secret: string, settings: RoomSettings): Promise<void> {
+  const normalizedSecret = await validateCodeForRoom(secret, settings, 'secret')
+
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'secrets' || !room.guestId) return room
 
-    if (!isValidCombination(secret, room.settings.codeLength, room.settings.allowDuplicates)) {
-      throw new Error('Invalid secret for this room settings')
-    }
-
     room.secrets = room.secrets ?? {}
-    room.secrets[userId] = secret
+    room.secrets[userId] = normalizedSecret
 
     room.lockedSecrets = room.lockedSecrets ?? {}
     room.lockedSecrets[userId] = true
@@ -535,14 +602,16 @@ export async function votePlayAgain(roomId: string, userId: string): Promise<voi
     room.status = 'rps'
     room.rpsChoices = {}
     room.rpsRound = 1
-    room.starterPlayerId = undefined
-    room.currentTurnPlayerId = undefined
+    delete room.rpsDeadlineAt
+    delete room.lastRpsResult
+    delete room.starterPlayerId
+    delete room.currentTurnPlayerId
     room.secrets = {}
     room.lockedSecrets = {}
-    room.pendingGuess = undefined
+    delete room.pendingGuess
     room.guessHistory = {}
-    room.winnerId = undefined
-    room.loserId = undefined
+    delete room.winnerId
+    delete room.loserId
     room.replayVotes = {}
     room.penalties = {
       [room.hostId]: 0,
