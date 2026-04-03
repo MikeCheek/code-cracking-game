@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import toast, { Toaster } from 'react-hot-toast'
+import type { PointerEvent as ReactPointerEvent } from 'react'
+import toast, { Toaster, ToastBar } from 'react-hot-toast'
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { DEFAULT_CODE_LENGTH } from './constants'
 import {
@@ -86,6 +87,7 @@ function App() {
   const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
+  const toastSwipeStateRef = useRef<Record<string, { startX: number; startY: number; active: boolean }>>({})
   const [hotseatGuestProfile, setHotseatGuestProfile] = useState<UserProfile | null>(null)
   const [hotseatRevealedPlayerId, setHotseatRevealedPlayerId] = useState<string | null>(null)
   const [waitingRoomP2SetupId, setWaitingRoomP2SetupId] = useState<string | null>(null)
@@ -829,7 +831,63 @@ function App() {
             },
           },
         }}
-      />
+      >
+        {(t) => {
+          const dismissToast = () => toast.dismiss(t.id)
+
+          const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+            toastSwipeStateRef.current[t.id] = {
+              startX: event.clientX,
+              startY: event.clientY,
+              active: true,
+            }
+          }
+
+          const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+            const state = toastSwipeStateRef.current[t.id]
+            if (!state?.active) return
+
+            const deltaX = event.clientX - state.startX
+            const deltaY = event.clientY - state.startY
+            if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY)) return
+
+            state.active = false
+            dismissToast()
+          }
+
+          const onPointerUp = () => {
+            delete toastSwipeStateRef.current[t.id]
+          }
+
+          return (
+            <div
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              className="pointer-events-auto"
+              style={{ touchAction: 'pan-y' }}
+            >
+              <ToastBar toast={t}>
+                {({ icon, message }) => (
+                  <div className="flex min-w-[320px] items-start gap-3 rounded-[14px] shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur">
+                    <div className="mt-0.5 shrink-0">{icon}</div>
+                    <div className="min-w-0 flex-1 pr-2">{message}</div>
+                    <button
+                      type="button"
+                      onClick={dismissToast}
+                      aria-label="Dismiss notification"
+                      className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[11px] font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </ToastBar>
+            </div>
+          )
+        }}
+      </Toaster>
 
       <div className="mx-auto flex h-full max-w-6xl flex-col">
         <header className={`glass-panel-strong relative z-1 mb-3 rounded-3xl ${isWelcomeRoute ? 'p-4' : 'p-3 sm:p-4'}`}>

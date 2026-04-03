@@ -224,19 +224,19 @@ export function GameplayPage({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={onSubmitSecret}
-                  disabled={secretLocked || secretInput.length !== maxCodeLength}
-                  className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
-                >
-                  {secretLocked ? 'Code locked' : 'Lock code'}
-                </button>
-                <button
-                  type="button"
                   onClick={onUnlockSecret}
                   disabled={!secretLocked}
                   className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                 >
                   Unlock
+                </button>
+                <button
+                  type="button"
+                  onClick={onSubmitSecret}
+                  disabled={secretLocked || secretInput.length !== maxCodeLength}
+                  className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950"
+                >
+                  {secretLocked ? 'Code locked' : 'Lock code'}
                 </button>
               </div>
             </div>
@@ -389,7 +389,7 @@ export function GameplayPage({
                         {item.guess.split('').map((digit, index) => (
                           <span
                             key={`${item.id}-digit-${digit}-${index}`}
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border font-mono text-xs font-bold ${getDigitChipClassName('miss')}`}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border font-mono text-xs font-bold ${getDigitChipClassName(kinds[index] ?? 'miss')}`}
                           >
                             {digit}
                           </span>
