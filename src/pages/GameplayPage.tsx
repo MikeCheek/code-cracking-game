@@ -7,6 +7,7 @@ const RPS_ITEMS: Array<{ value: RpsChoice; icon: string; label: string }> = [
 ]
 
 const DIGIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
+type DigitKind = 'strike' | 'ball' | 'miss' | 'code'
 
 type GameplayPageProps = {
   user: UserProfile
@@ -73,20 +74,86 @@ export function GameplayPage({
   }
 
   const numberOptions = Array.from({ length: maxCodeLength + 1 }, (_, index) => index)
+  const pendingGuessDigits = room.pendingGuess?.guess.split('') ?? []
+
+  const getDigitKinds = (
+    guess: string,
+    strikes: number,
+    balls: number,
+    secret?: string,
+  ): DigitKind[] => {
+    const digits = guess.split('')
+    if (digits.length === 0) return []
+
+    if (secret && secret.length === digits.length) {
+      const result: DigitKind[] = Array.from({ length: digits.length }, () => 'miss')
+      const pool: Record<string, number> = {}
+
+      for (let index = 0; index < digits.length; index += 1) {
+        if (digits[index] === secret[index]) {
+          result[index] = 'strike'
+        } else {
+          const secretDigit = secret[index]
+          pool[secretDigit] = (pool[secretDigit] ?? 0) + 1
+        }
+      }
+
+      for (let index = 0; index < digits.length; index += 1) {
+        if (result[index] === 'strike') continue
+        const digit = digits[index]
+        const available = pool[digit] ?? 0
+        if (available > 0) {
+          result[index] = 'ball'
+          pool[digit] = available - 1
+        }
+      }
+
+      return result
+    }
+
+    const result: DigitKind[] = Array.from({ length: digits.length }, () => 'miss')
+    for (let index = 0; index < Math.min(strikes, digits.length); index += 1) {
+      result[index] = 'strike'
+    }
+    for (let index = strikes; index < Math.min(strikes + balls, digits.length); index += 1) {
+      result[index] = 'ball'
+    }
+    return result
+  }
+
+  const getDigitChipClassName = (kind: DigitKind) => {
+    if (kind === 'strike') return 'border-emerald-300/50 bg-emerald-300/20 text-emerald-100'
+    if (kind === 'ball') return 'border-amber-300/50 bg-amber-300/20 text-amber-100'
+    if (kind === 'code') return 'border-cyan-300/40 bg-cyan-300/15 text-cyan-100'
+    return 'border-white/10 bg-slate-900/50 text-slate-100'
+  }
+
+  const pendingKinds = getDigitKinds(room.pendingGuess?.guess ?? '', claimedBulls, claimedCows, mySecret)
 
   return (
-    <section className="mx-auto grid h-full w-full max-w-4xl grid-rows-[auto_auto_1fr_auto] gap-3 overflow-hidden">
+    <section className="mx-auto grid w-full max-w-4xl gap-3">
       <article className="glass-panel-strong rounded-3xl p-4">
         <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Game</p>
         <h2 className="text-xl font-bold text-white">{room.roomName}</h2>
         <p className="text-sm text-slate-300">{room.message ?? 'Playing'}</p>
       </article>
 
-      <article className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <article className="grid grid-cols-2 gap-2">
         <div className={`rounded-2xl border p-3 ${isMyTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
           <p className="text-sm font-semibold text-white">{myProfile?.avatar} {myProfile?.username ?? 'You'}</p>
           <p className="mt-1 text-xs text-slate-300">{isMyTurnCard ? 'Current player' : 'Waiting'}</p>
-          {mySecret && <p className="mt-1 font-mono text-fuchsia-100">Code: {mySecret}</p>}
+          {mySecret && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {mySecret.split('').map((digit, index) => (
+                <span
+                  key={`my-code-${digit}-${index}`}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border font-mono text-sm font-bold ${getDigitChipClassName('code')}`}
+                >
+                  {digit}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className={`rounded-2xl border p-3 ${isOpponentTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
           <p className="text-sm font-semibold text-white">{opponentProfile?.avatar ?? '❔'} {opponentProfile?.username ?? 'Opponent'}</p>
@@ -94,8 +161,8 @@ export function GameplayPage({
         </div>
       </article>
 
-      <article className="grid grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_1fr]">
-        <div className="glass-panel rounded-3xl p-4 overflow-y-auto">
+      <article className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr]">
+        <div className="glass-panel rounded-3xl p-4">
           <p className="text-sm font-semibold text-white">Current action</p>
 
           {room.status === 'rps' && (
@@ -225,10 +292,24 @@ export function GameplayPage({
 
               {room.pendingGuess && pendingForResponder && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-sm text-white">Opponent guess: <span className="font-mono text-fuchsia-100">{room.pendingGuess.guess}</span></p>
+                  <p className="text-sm text-white">Opponent guess</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {pendingGuessDigits.map((digit, index) => (
+                      <span
+                        key={`${digit}-${index}`}
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border font-mono text-base font-bold ${getDigitChipClassName(pendingKinds[index] ?? 'miss')}`}
+                      >
+                        {digit}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-semibold">
+                    <span className="text-emerald-200">Green = Strike</span>
+                    <span className="text-amber-200">Orange = Ball</span>
+                  </div>
                   <div className="mt-3 space-y-3">
                     <div>
-                      <p className="text-xs text-slate-300">Strikes</p>
+                      <p className="text-xs font-semibold text-emerald-200">Strikes</p>
                       <div className="mt-1 grid grid-cols-6 gap-1">
                         {numberOptions.map((value) => (
                           <button
@@ -237,7 +318,7 @@ export function GameplayPage({
                             onClick={() => onClaimedBullsChange(value)}
                             className={`rounded-lg px-2 py-1 text-xs font-bold transition ${
                               claimedBulls === value
-                                ? 'bg-fuchsia-300/30 text-white'
+                                ? 'border border-emerald-300/55 bg-emerald-300/35 text-emerald-50'
                                 : 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
                             }`}
                           >
@@ -248,7 +329,7 @@ export function GameplayPage({
                     </div>
 
                     <div>
-                      <p className="text-xs text-slate-300">Balls</p>
+                      <p className="text-xs font-semibold text-amber-200">Balls</p>
                       <div className="mt-1 grid grid-cols-6 gap-1">
                         {numberOptions.map((value) => (
                           <button
@@ -257,7 +338,7 @@ export function GameplayPage({
                             onClick={() => onClaimedCowsChange(value)}
                             className={`rounded-lg px-2 py-1 text-xs font-bold transition ${
                               claimedCows === value
-                                ? 'bg-fuchsia-300/30 text-white'
+                                ? 'border border-amber-300/55 bg-amber-300/35 text-amber-50'
                                 : 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
                             }`}
                           >
@@ -286,23 +367,41 @@ export function GameplayPage({
           )}
         </div>
 
-        <div className="glass-panel rounded-3xl p-3 overflow-y-auto">
+        <div className="glass-panel rounded-3xl p-3">
           <p className="mb-2 text-sm font-semibold text-white">Guesses</p>
           {sortedHistory.length === 0 ? (
             <p className="text-sm text-slate-300">No guesses yet.</p>
           ) : (
             <div className="space-y-2">
-              {sortedHistory.map((item) => (
-                <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100">
-                  <div className="flex items-center justify-between gap-2">
-                    <span>Turn {item.turnNumber}</span>
-                    <span className="font-mono text-fuchsia-200">{item.guess}</span>
+              {sortedHistory.map((item) => {
+                const kinds = getDigitKinds(
+                  item.guess,
+                  item.actualBulls,
+                  item.actualCows,
+                  item.toPlayerId === myProfile?.id ? mySecret : undefined,
+                )
+
+                return (
+                  <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Turn {item.turnNumber}</span>
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {item.guess.split('').map((digit, index) => (
+                          <span
+                            key={`${item.id}-digit-${digit}-${index}`}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border font-mono text-xs font-bold ${getDigitChipClassName('miss')}`}
+                          >
+                            {digit}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-300">
+                      {room.profiles[item.fromPlayerId]?.username ?? 'Player'} • {item.actualBulls} Strikes • {item.actualCows} Balls
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-300">
-                    {room.profiles[item.fromPlayerId]?.username ?? 'Player'} • {item.actualBulls} Strikes • {item.actualCows} Balls
-                  </p>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
