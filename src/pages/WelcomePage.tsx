@@ -109,7 +109,7 @@ export function WelcomePage({
     const container = carouselRef.current
     if (!container) return
     const firstItem = container.querySelector<HTMLButtonElement>('[data-avatar-index]')
-    const step = (firstItem?.offsetWidth ?? 48) + 12
+    const step = (firstItem?.offsetWidth ?? 48) * 0.7
     container.scrollBy({ left: direction * step, behavior: 'smooth' })
   }
 
@@ -162,15 +162,15 @@ export function WelcomePage({
     const circularDistance = Math.min(directDistance, AVATARS.length - directDistance)
 
     if (circularDistance === 0) {
-      return 'mx-4 sm:mx-5'
+      return 'mx-6 sm:mx-8'
     }
     if (circularDistance === 1) {
-      return 'mx-3 sm:mx-4'
+      return 'mx-2.5 sm:mx-3.5'
     }
     if (circularDistance === 2) {
-      return 'mx-2 sm:mx-2.5'
+      return 'mx-1.5 sm:mx-2'
     }
-    return 'mx-1'
+    return 'mx-0.5'
   }
 
   return (
