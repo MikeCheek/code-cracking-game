@@ -149,12 +149,12 @@ export function WelcomePage({
       return 'scale-[2.6] opacity-100 z-10'
     }
     if (circularDistance === 1) {
-      return 'scale-[1.45] opacity-86 hover:opacity-95 z-[7]'
+      return 'scale-[1.45] opacity-66 hover:opacity-95 z-[7]'
     }
     if (circularDistance === 2) {
-      return 'scale-100 opacity-68 hover:opacity-80 z-[5]'
+      return 'scale-100 opacity-48 hover:opacity-80 z-[5]'
     }
-    return 'scale-90 opacity-32 hover:opacity-52 z-[3]'
+    return 'scale-90 opacity-12 hover:opacity-52 z-[3]'
   }
 
   const getAvatarItemSpacingClassName = (index: number) => {
@@ -245,7 +245,7 @@ export function WelcomePage({
                         key={`${item}-${index}`}
                         data-avatar-index={index}
                         onClick={() => onAvatarChange(item)}
-                        className={`relative h-10 w-10 shrink-0 snap-center rounded-2xl bg-transparent text-2xl transition duration-200 ease-out sm:h-12 sm:w-12 sm:text-3xl ${getAvatarItemClassName(index)} ${getAvatarItemSpacingClassName(index)}`}
+                        className={`relative h-10 w-10 shrink-0 snap-center rounded-2xl bg-transparent text-2xl transition duration-[50] ease-out sm:h-12 sm:w-12 sm:text-3xl ${getAvatarItemClassName(index)} ${getAvatarItemSpacingClassName(index)}`}
                       >
                         {item}
                       </button>

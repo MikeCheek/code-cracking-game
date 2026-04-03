@@ -72,7 +72,35 @@ export function RoomsPage({
 
       <article className="glass-panel rounded-3xl p-3 overflow-y-auto">
         {joinableRooms.length === 0 ? (
-          <p className="text-sm text-slate-300">No open games right now.</p>
+          <div className="flex min-h-[18rem] flex-col items-center justify-center gap-4 px-4 py-8 text-center">
+            <div className="relative flex h-44 w-full max-w-sm items-center justify-center" aria-hidden="true">
+              <div className="absolute inset-x-8 top-8 h-28 rounded-[2rem] border border-cyan-200/15 bg-slate-950/35 shadow-[0_0_50px_rgba(111,255,233,0.12)]" />
+              <div className="absolute left-1/2 top-4 h-5 w-20 -translate-x-1/2 rounded-full bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-violet-400 opacity-80 blur-[2px]" />
+
+              <div className="absolute left-12 top-18 h-10 w-10 rotate-[-12deg] rounded-2xl border border-white/10 bg-white/8 shadow-[0_0_24px_rgba(255,255,255,0.08)]" />
+              <div className="absolute right-14 top-16 h-12 w-12 rotate-[14deg] rounded-3xl border border-white/10 bg-white/8 shadow-[0_0_24px_rgba(255,255,255,0.08)]" />
+              <div className="absolute left-20 top-28 h-6 w-6 rounded-full bg-cyan-300/80 shadow-[0_0_16px_rgba(111,255,233,0.45)]" />
+              <div className="absolute right-20 top-30 h-3 w-3 rounded-full bg-fuchsia-300/90 shadow-[0_0_16px_rgba(255,116,216,0.45)]" />
+
+              <div className="absolute bottom-6 left-1/2 flex w-[18rem] -translate-x-1/2 items-end justify-center gap-3">
+                <div className="h-12 w-12 rotate-[-10deg] rounded-2xl border border-white/10 bg-slate-900/70" />
+                <div className="flex h-28 w-40 flex-col items-center justify-between rounded-[2rem] border border-cyan-200/20 bg-gradient-to-b from-slate-900/95 to-slate-950/85 px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+                  <div className="mt-1 h-16 w-full rounded-[1.4rem] border border-cyan-200/20 bg-gradient-to-br from-cyan-300/20 via-slate-900 to-fuchsia-300/15 p-3">
+                    <div className="flex h-full items-center justify-center rounded-[1rem] border border-white/8 bg-slate-950/55 text-3xl font-black text-cyan-200">
+                      0
+                    </div>
+                  </div>
+                  <div className="h-2 w-16 rounded-full bg-fuchsia-300/60" />
+                </div>
+                <div className="h-12 w-12 rotate-[10deg] rounded-2xl border border-white/10 bg-slate-900/70" />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-lg font-bold text-white">The lobby is empty.</p>
+              <p className="mt-1 text-sm text-slate-300">Be the first to open a game and pull someone into the code hunt.</p>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2">
             {joinableRooms.map((entry) => (

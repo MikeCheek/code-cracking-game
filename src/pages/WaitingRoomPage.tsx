@@ -8,8 +8,6 @@ type WaitingRoomPageProps = {
   onCopyInvite: () => void
   onShareTelegram: () => void
   onShareWhatsApp: () => void
-  onLeaveRoom: () => void
-  onDeleteRoom: () => void
   onJoinAsPlayer2?: () => void
 }
 
@@ -21,8 +19,6 @@ export function WaitingRoomPage({
   onCopyInvite,
   onShareTelegram,
   onShareWhatsApp,
-  onLeaveRoom,
-  onDeleteRoom,
   onJoinAsPlayer2,
 }: WaitingRoomPageProps) {
   const roomTags = [
@@ -98,24 +94,6 @@ export function WaitingRoomPage({
         </div>
       </article>
 
-      <article className="grid grid-cols-2 gap-2">
-        <button
-          onClick={onLeaveRoom}
-          className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/15"
-        >
-          Leave game
-        </button>
-        {room.hostId === user.id ? (
-          <button
-            onClick={onDeleteRoom}
-            className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
-          >
-            Delete game
-          </button>
-        ) : (
-          <div />
-        )}
-      </article>
     </section>
   )
 }

@@ -255,7 +255,6 @@ function App() {
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
-      if (!showUserMenu) return
       const target = event.target as Node | null
       if (!target) return
       if (userMenuRef.current?.contains(target)) return
@@ -264,7 +263,7 @@ function App() {
 
     window.addEventListener('pointerdown', onPointerDown)
     return () => window.removeEventListener('pointerdown', onPointerDown)
-  }, [showUserMenu])
+  }, [])
 
   const myProfile = useMemo(() => {
     if (!room || !currentPlayerId) return null
@@ -1050,8 +1049,6 @@ function App() {
                     onCopyInvite={onCopyInvite}
                     onShareTelegram={onShareInviteTelegram}
                     onShareWhatsApp={onShareInviteWhatsApp}
-                    onLeaveRoom={requestLeaveRoom}
-                    onDeleteRoom={() => onDeleteHostedRoom(room.id)}
                     onJoinAsPlayer2={onOpenWaitingRoomP2Setup}
                   />
                 ) : (
@@ -1072,7 +1069,6 @@ function App() {
                 user ? (
                   room ? (
                     <GameplayPage
-                      user={user}
                       room={room}
                       myProfile={myProfile}
                       opponentProfile={opponentProfile}
@@ -1097,6 +1093,7 @@ function App() {
                       onAnswerGuess={onAnswerGuess}
                       onLeaveRoom={requestLeaveRoom}
                       onDeleteRoom={() => onDeleteHostedRoom(room.id)}
+                      canDeleteRoom={room.hostId === user.id}
                     />
                   ) : (
                     <section className="glass-panel rounded-3xl p-6">

@@ -1,4 +1,5 @@
-import type { GuessRecord, PlayerProfile, RoomData, RpsChoice, UserProfile } from '../types'
+import { useEffect, useRef, useState } from 'react'
+import type { GuessRecord, PlayerProfile, RoomData, RpsChoice } from '../types'
 
 const RPS_ITEMS: Array<{ value: RpsChoice; icon: string; label: string }> = [
   { value: 'rock', icon: '🪨', label: 'Rock' },
@@ -10,7 +11,6 @@ const DIGIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
 type DigitKind = 'strike' | 'ball' | 'miss' | 'code'
 
 type GameplayPageProps = {
-  user: UserProfile
   room: RoomData
   myProfile: PlayerProfile | null
   opponentProfile: PlayerProfile | null
@@ -35,10 +35,10 @@ type GameplayPageProps = {
   onAnswerGuess: () => void
   onLeaveRoom: () => void
   onDeleteRoom: () => void
+  canDeleteRoom: boolean
 }
 
 export function GameplayPage({
-  user,
   room,
   myProfile,
   opponentProfile,
@@ -63,10 +63,25 @@ export function GameplayPage({
   onAnswerGuess,
   onLeaveRoom,
   onDeleteRoom,
+  canDeleteRoom,
 }: GameplayPageProps) {
+  const [showGameMenu, setShowGameMenu] = useState(false)
+  const gameMenuRef = useRef<HTMLDivElement | null>(null)
   const isMyTurnCard = room.currentTurnPlayerId && myProfile?.id === room.currentTurnPlayerId
   const isOpponentTurnCard = room.currentTurnPlayerId && opponentProfile?.id === room.currentTurnPlayerId
   const maxCodeLength = room.settings.codeLength
+
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (!target) return
+      if (gameMenuRef.current?.contains(target)) return
+      setShowGameMenu(false)
+    }
+
+    window.addEventListener('pointerdown', onPointerDown)
+    return () => window.removeEventListener('pointerdown', onPointerDown)
+  }, [])
 
   const appendDigit = (current: string, digit: string) => {
     if (current.length >= maxCodeLength) return
@@ -133,9 +148,52 @@ export function GameplayPage({
   return (
     <section className="mx-auto grid w-full max-w-4xl gap-3">
       <article className="glass-panel-strong rounded-3xl p-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Game</p>
-        <h2 className="text-xl font-bold text-white">{room.roomName}</h2>
-        <p className="text-sm text-slate-300">{room.message ?? 'Playing'}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Game</p>
+            <h2 className="truncate text-xl font-bold text-white">{room.roomName}</h2>
+            <p className="text-sm text-slate-300">{room.message ?? 'Playing'}</p>
+          </div>
+
+          <div ref={gameMenuRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowGameMenu((open) => !open)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg text-slate-100 shadow-sm transition hover:bg-white/10"
+              aria-label="Room actions"
+              aria-expanded={showGameMenu}
+            >
+              ⚙
+            </button>
+
+            {showGameMenu && (
+              <div className="glass-panel-strong absolute right-0 top-12 z-20 w-44 rounded-xl p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowGameMenu(false)
+                    onLeaveRoom()
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
+                >
+                  Leave game
+                </button>
+                {canDeleteRoom && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGameMenu(false)
+                      onDeleteRoom()
+                    }}
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
+                  >
+                    Delete game
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </article>
 
       <article className="grid grid-cols-2 gap-2">
@@ -407,26 +465,6 @@ export function GameplayPage({
         </div>
       </article>
 
-      <article className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={onLeaveRoom}
-          className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/15"
-        >
-          Leave game
-        </button>
-        {room.hostId === user.id ? (
-          <button
-            type="button"
-            onClick={onDeleteRoom}
-            className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
-          >
-            Delete game
-          </button>
-        ) : (
-          <div />
-        )}
-      </article>
     </section>
   )
 }
