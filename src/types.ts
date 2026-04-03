@@ -75,6 +75,7 @@ export interface RoomData {
     playerId: string
     at: number
   }
+  replayVotes?: Record<string, boolean>
 }
 
 export interface LobbyRoomSummary {

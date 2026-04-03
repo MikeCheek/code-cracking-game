@@ -33,100 +33,88 @@ export function WaitingRoomPage({
   ]
 
   return (
-    <section className="space-y-5">
-      <article className="glass-panel-strong rounded-[2rem] p-6 md:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.34em] text-fuchsia-300">Staging bay</p>
-            <h2 className="mt-2 text-3xl font-bold text-white md:text-4xl">{room.roomName}</h2>
-            <p className="mt-2 text-sm text-slate-300">Room #{room.id.slice(0, 6)} · waiting for launch</p>
-          </div>
-
-          <div className="rounded-[1.25rem] border border-white/8 bg-white/6 px-4 py-3 text-right">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Your slot</p>
-            <p className="mt-2 text-3xl">{myProfile?.avatar}</p>
-            <p className="text-sm font-semibold text-white">{myProfile?.username}</p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-2">
+    <section className="mx-auto grid h-full w-full max-w-4xl grid-rows-[auto_1fr_auto] gap-3 overflow-hidden">
+      <article className="glass-panel-strong rounded-3xl p-4">
+        <h2 className="text-xl font-bold text-white">{room.roomName}</h2>
+        <div className="mt-2 flex flex-wrap gap-2">
           {roomTags.map((tag) => (
-            <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200">
+            <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
               {tag}
             </span>
           ))}
         </div>
+      </article>
 
-        <div className="mt-6 rounded-[1.5rem] border border-fuchsia-300/15 bg-fuchsia-300/10 p-5">
-          <p className="text-sm font-semibold text-fuchsia-100">Match will begin as soon as the opponent joins.</p>
-          <p className="mt-2 text-sm leading-6 text-fuchsia-50/80">
-            Send the invite link now, or use a direct share button below to open Telegram, WhatsApp, or the native share sheet.
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">You</p>
-            <p className="mt-2 text-base font-semibold text-white">
-              {myProfile?.avatar} {myProfile?.username}
-            </p>
+      <article className="grid grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_220px_1fr]">
+        <div className="glass-panel rounded-3xl p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Participants</p>
+          <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white">
+            {myProfile?.avatar} {myProfile?.username}
           </div>
-          <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Opponent</p>
+          <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white">
             {opponentProfile ? (
-              <p className="mt-2 text-base font-semibold text-white">
-                {opponentProfile.avatar} {opponentProfile.username}
-              </p>
-            ) : room.hostId === user.id && onJoinAsPlayer2 ? (
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="text-sm text-slate-300">No opponent yet</p>
-                <button
-                  onClick={onJoinAsPlayer2}
-                  className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-2 text-xs font-bold text-fuchsia-100 transition hover:bg-fuchsia-300/15"
-                >
-                  Join as P2
-                </button>
-              </div>
+              <span>{opponentProfile.avatar} {opponentProfile.username}</span>
             ) : (
-              <p className="mt-2 text-sm text-slate-300">Waiting for a player...</p>
+              <span>Waiting for player 2</span>
             )}
           </div>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <button
-            onClick={onCopyInvite}
-            className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Copy invite
-          </button>
-          <button
-            onClick={onShareTelegram}
-            className="rounded-[1.5rem] border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm font-semibold text-sky-100 transition hover:bg-sky-400/15"
-          >
-            Telegram
-          </button>
-          <button
-            onClick={onShareWhatsApp}
-            className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
-          >
-            WhatsApp
-          </button>
-          <button
-            onClick={onLeaveRoom}
-            className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/15"
-          >
-            Leave
-          </button>
-          {room.hostId === user.id && (
+          {!opponentProfile && room.hostId === user.id && onJoinAsPlayer2 && (
             <button
-              onClick={onDeleteRoom}
-              className="rounded-[1.5rem] border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
+              type="button"
+              onClick={onJoinAsPlayer2}
+              className="mt-3 w-full rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-2 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-300/15"
             >
-              Delete room
+              Join as player 2
             </button>
           )}
         </div>
+
+        <div className="glass-panel flex items-center justify-center rounded-3xl p-4">
+          <div className="animate-hourglass text-7xl" aria-hidden="true">⏳</div>
+        </div>
+
+        <div className="glass-panel rounded-3xl p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Share invite</p>
+          <div className="mt-3 grid gap-2">
+            <button
+              onClick={onCopyInvite}
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Copy invite
+            </button>
+            <button
+              onClick={onShareTelegram}
+              className="rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm font-semibold text-sky-100 transition hover:bg-sky-400/15"
+            >
+              Telegram
+            </button>
+            <button
+              onClick={onShareWhatsApp}
+              className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
+            >
+              WhatsApp
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <article className="grid grid-cols-2 gap-2">
+        <button
+          onClick={onLeaveRoom}
+          className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/15"
+        >
+          Leave game
+        </button>
+        {room.hostId === user.id ? (
+          <button
+            onClick={onDeleteRoom}
+            className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
+          >
+            Delete game
+          </button>
+        ) : (
+          <div />
+        )}
       </article>
     </section>
   )

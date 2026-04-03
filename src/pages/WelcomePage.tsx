@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AVATARS } from '../constants'
 import { generateRandomUsername } from '../utils/profile'
 import type { UserProfile } from '../types'
@@ -29,6 +29,149 @@ export function WelcomePage({
   onUseSavedProfile,
 }: WelcomePageProps) {
   const [consentShown, setConsentShown] = useState(!isFirstVisit)
+  const [editingProfile, setEditingProfile] = useState(!user)
+  const [isTouchPrimary, setIsTouchPrimary] = useState(true)
+  const carouselRef = useRef<HTMLDivElement | null>(null)
+  const circleDragPointerIdRef = useRef<number | null>(null)
+  const circleDragStartXRef = useRef(0)
+  const circleDragStartScrollLeftRef = useRef(0)
+  const isCircleDraggingRef = useRef(false)
+  const selectingFromScrollRef = useRef(false)
+
+  const displayName = useMemo(() => {
+    if (editingProfile) return username || 'Choose your name'
+    return user?.username || username || 'Choose your name'
+  }, [editingProfile, user, username])
+
+  const selectedAvatarIndex = useMemo(() => {
+    const index = AVATARS.indexOf(avatar)
+    return index >= 0 ? index : 0
+  }, [avatar])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const media = window.matchMedia('(pointer: coarse)')
+    const apply = () => setIsTouchPrimary(media.matches)
+    apply()
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [])
+
+  useEffect(() => {
+    const container = carouselRef.current
+    if (!container || !editingProfile) return
+
+    if (selectingFromScrollRef.current) {
+      selectingFromScrollRef.current = false
+      return
+    }
+
+    const selected = container.querySelector<HTMLButtonElement>(`[data-avatar-index="${selectedAvatarIndex}"]`)
+    if (!selected) return
+
+    const containerCenter = container.clientWidth / 2
+    const selectedCenter = selected.offsetLeft + selected.offsetWidth / 2
+    const left = Math.max(0, selectedCenter - containerCenter)
+    container.scrollTo({ left, behavior: 'smooth' })
+  }, [editingProfile, selectedAvatarIndex])
+
+  const pickAvatarFromScrollPosition = () => {
+    const container = carouselRef.current
+    if (!container || !editingProfile) return
+
+    const centerX = container.scrollLeft + container.clientWidth / 2
+    const items = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-avatar-index]'))
+    if (items.length === 0) return
+
+    let closestIndex = selectedAvatarIndex
+    let closestDistance = Number.POSITIVE_INFINITY
+
+    for (const item of items) {
+      const itemCenter = item.offsetLeft + item.offsetWidth / 2
+      const distance = Math.abs(itemCenter - centerX)
+      if (distance < closestDistance) {
+        closestDistance = distance
+        closestIndex = Number(item.dataset.avatarIndex ?? selectedAvatarIndex)
+      }
+    }
+
+    if (Number.isFinite(closestIndex) && closestIndex !== selectedAvatarIndex) {
+      selectingFromScrollRef.current = true
+      onAvatarChange(AVATARS[closestIndex])
+    }
+  }
+
+  const onCarouselScroll = () => {
+    pickAvatarFromScrollPosition()
+  }
+
+  const scrollByOne = (direction: -1 | 1) => {
+    const container = carouselRef.current
+    if (!container) return
+    const firstItem = container.querySelector<HTMLButtonElement>('[data-avatar-index]')
+    const step = (firstItem?.offsetWidth ?? 48) + 12
+    container.scrollBy({ left: direction * step, behavior: 'smooth' })
+  }
+
+  const onCirclePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!editingProfile) return
+    const container = carouselRef.current
+    if (!container) return
+    circleDragPointerIdRef.current = event.pointerId
+    circleDragStartXRef.current = event.clientX
+    circleDragStartScrollLeftRef.current = container.scrollLeft
+    isCircleDraggingRef.current = true
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const onCirclePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!editingProfile || !isCircleDraggingRef.current) return
+    if (circleDragPointerIdRef.current !== event.pointerId) return
+    const container = carouselRef.current
+    if (!container) return
+    const deltaX = event.clientX - circleDragStartXRef.current
+    container.scrollLeft = circleDragStartScrollLeftRef.current - deltaX
+  }
+
+  const onCirclePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (circleDragPointerIdRef.current !== event.pointerId) return
+    isCircleDraggingRef.current = false
+    circleDragPointerIdRef.current = null
+    event.currentTarget.releasePointerCapture(event.pointerId)
+    pickAvatarFromScrollPosition()
+  }
+
+  const getAvatarItemClassName = (index: number) => {
+    const directDistance = Math.abs(index - selectedAvatarIndex)
+    const circularDistance = Math.min(directDistance, AVATARS.length - directDistance)
+
+    if (circularDistance === 0) {
+      return 'scale-[2.6] opacity-100 z-10'
+    }
+    if (circularDistance === 1) {
+      return 'scale-[1.45] opacity-86 hover:opacity-95 z-[7]'
+    }
+    if (circularDistance === 2) {
+      return 'scale-100 opacity-68 hover:opacity-80 z-[5]'
+    }
+    return 'scale-90 opacity-32 hover:opacity-52 z-[3]'
+  }
+
+  const getAvatarItemSpacingClassName = (index: number) => {
+    const directDistance = Math.abs(index - selectedAvatarIndex)
+    const circularDistance = Math.min(directDistance, AVATARS.length - directDistance)
+
+    if (circularDistance === 0) {
+      return 'mx-4 sm:mx-5'
+    }
+    if (circularDistance === 1) {
+      return 'mx-3 sm:mx-4'
+    }
+    if (circularDistance === 2) {
+      return 'mx-2 sm:mx-2.5'
+    }
+    return 'mx-1'
+  }
 
   return (
     <>
@@ -37,9 +180,6 @@ export function WelcomePage({
           <div className="glass-panel-strong w-full max-w-md rounded-[1.75rem] p-6">
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-fuchsia-300">Audio Prompt</p>
             <h3 className="mt-2 text-3xl font-bold text-white">Turn the sound on?</h3>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              This game uses sound cues for wins, lies, and turn changes. Enable audio for the full arcade feel.
-            </p>
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
@@ -68,120 +208,119 @@ export function WelcomePage({
         </div>
       )}
 
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <article className="glass-panel-strong relative overflow-hidden rounded-[2rem] p-6 md:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,116,216,0.2),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(159,124,255,0.15),transparent_32%)]" />
-          <div className="relative">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-2xl">
-                <p className="text-xs font-bold uppercase tracking-[0.36em] text-fuchsia-300">Code Cracking Arena</p>
-                <h2 className="mt-3 text-4xl font-bold tracking-tight text-white md:text-6xl">
-                  Build a profile. Find a room. Start the duel.
-                </h2>
-                <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 md:text-base">
-                  This is the fast lane into the match loop: set your identity, launch into the lobby, and get straight
-                  to the guessing game.
-                </p>
-              </div>
+      <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_1fr_auto] gap-4 overflow-hidden">
+        <p className="text-center text-2xl font-black tracking-tight text-white sm:text-4xl">Code Cracking Game</p>
 
-              <div className="glass-panel rounded-[1.5rem] px-4 py-3">
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Player token</p>
-                <p className="mt-2 text-3xl">{avatar}</p>
-                <p className="text-sm font-semibold text-slate-100">{username || 'Choose a name'}</p>
-              </div>
-            </div>
+        <article className="glass-panel-strong flex flex-col items-center justify-center rounded-3xl p-4 sm:p-6">
+          <div className="relative flex h-56 w-full max-w-xl items-center justify-center sm:h-64">
+            {editingProfile && (
+              <>
+                {!isTouchPrimary && (
+                  <button
+                    type="button"
+                    onClick={() => scrollByOne(-1)}
+                    className="absolute left-0 z-30 h-10 w-10 rounded-full border border-white/20 bg-slate-900/70 text-lg font-bold text-white transition hover:bg-slate-800"
+                    aria-label="Previous emote"
+                  >
+                    {'<'}
+                  </button>
+                )}
 
-            {user && (
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">
-                <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                Saved profile ready: {user.avatar} {user.username}
+                <div className="pointer-events-none absolute z-0 h-44 w-44 rounded-full border border-fuchsia-200/20 bg-slate-900/70 shadow-[0_0_30px_rgba(255,116,216,0.2)] sm:h-52 sm:w-52" />
+
+                <div
+                  ref={carouselRef}
+                  onScroll={onCarouselScroll}
+                  onPointerUp={onCirclePointerEnd}
+                  onPointerDown={onCirclePointerDown}
+                  onPointerMove={onCirclePointerMove}
+                  onPointerCancel={onCirclePointerEnd}
+                  className="relative z-20 w-[15.5rem] max-w-[92vw] touch-pan-x cursor-grab snap-x snap-mandatory overflow-x-auto overflow-y-visible py-8 scroll-smooth active:cursor-grabbing [scrollbar-width:none] [-ms-overflow-style:none]"
+                  style={{ paddingInline: 'calc(50% - 1.25rem)' }}
+                >
+                  <div className="flex w-max items-center gap-0">
+                    {AVATARS.map((item, index) => (
+                      <button
+                        type="button"
+                        key={`${item}-${index}`}
+                        data-avatar-index={index}
+                        onClick={() => onAvatarChange(item)}
+                        className={`relative h-10 w-10 shrink-0 snap-center rounded-2xl bg-transparent text-2xl transition duration-200 ease-out sm:h-12 sm:w-12 sm:text-3xl ${getAvatarItemClassName(index)} ${getAvatarItemSpacingClassName(index)}`}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {!isTouchPrimary && (
+                  <button
+                    type="button"
+                    onClick={() => scrollByOne(1)}
+                    className="absolute right-0 z-30 h-10 w-10 rounded-full border border-white/20 bg-slate-900/70 text-lg font-bold text-white transition hover:bg-slate-800"
+                    aria-label="Next emote"
+                  >
+                    {'>'}
+                  </button>
+                )}
+              </>
+            )}
+
+            {!editingProfile && (
+              <div className="relative z-10 flex h-44 w-44 select-none items-center justify-center rounded-full border border-white/15 bg-slate-900/75 text-7xl shadow-2xl sm:h-52 sm:w-52 sm:text-8xl">
+                {user?.avatar ?? avatar}
               </div>
             )}
 
-            <div className="mt-6 rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-semibold text-white">Quick start</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Choose a name and avatar, enter the lobby, then create or join a room. The setup is designed for fast, repeat play.
-              </p>
+          </div>
+          <p className="mt-4 text-lg font-bold text-white">{displayName}</p>
+
+          {!editingProfile && user ? (
+            <div className="mt-4 grid w-full max-w-sm grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingProfile(true)}
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Modify
+              </button>
+              <button
+                type="button"
+                onClick={onUseSavedProfile}
+                className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:brightness-110"
+              >
+                Start game
+              </button>
             </div>
-          </div>
-        </article>
-
-        <article className="space-y-4 rounded-[2rem] border border-white/8 bg-white/6 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.32em] text-fuchsia-300">Profile Console</p>
-            <h3 className="mt-2 text-2xl font-bold text-white">Set your player identity</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              One name, one avatar, and you are in. Everything here is optimized for quick re-entry.
-            </p>
-          </div>
-
-          <label className="block text-sm font-semibold text-slate-100">Username</label>
-          <div className="flex gap-2">
-            <input
-              value={username}
-              onChange={(event) => onUsernameChange(event.target.value)}
-              placeholder="Enter a username"
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
-            />
-            <button
-              type="button"
-              onClick={() => onUsernameChange(generateRandomUsername())}
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-fuchsia-200 transition hover:bg-white/10"
-              title="Generate random username"
-            >
-              Random
-            </button>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <label className="text-sm font-semibold text-slate-100">Avatar</label>
-              <span className="text-xs text-slate-400">Tap to choose</span>
-            </div>
-            <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-5 lg:grid-cols-5">
-              {AVATARS.map((item) => (
+          ) : (
+            <div className="mt-4 w-full max-w-xl space-y-3">
+              <div className="flex gap-2">
+                <input
+                  value={username}
+                  onChange={(event) => onUsernameChange(event.target.value)}
+                  placeholder="Write your name"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
+                />
                 <button
                   type="button"
-                  key={item}
-                  onClick={() => onAvatarChange(item)}
-                  className={`flex aspect-square items-center justify-center rounded-2xl text-2xl transition ${
-                    avatar === item
-                      ? 'border border-fuchsia-300/50 bg-fuchsia-300/20 shadow-[0_0_0_1px_rgba(255,116,216,0.25)] scale-105'
-                      : 'border border-white/10 bg-white/5 hover:border-fuchsia-300/30 hover:bg-white/10'
-                  }`}
+                  onClick={() => onUsernameChange(generateRandomUsername())}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-fuchsia-200 transition hover:bg-white/10"
                 >
-                  {item}
+                  Random
                 </button>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <div className="grid gap-3">
-            <button
-              onClick={onEnterLobby}
-              className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-5 py-4 text-base font-bold text-slate-950 shadow-[0_18px_40px_rgba(255,116,216,0.2)] transition hover:brightness-110"
-            >
-              Enter Lobby
-            </button>
-            {user && (
+              <p className="text-center text-xs text-slate-400">Swipe the emote rail or use arrows on desktop. Centered emote becomes active.</p>
+
               <button
-                onClick={onUseSavedProfile}
-                className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-4 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15"
+                type="button"
+                onClick={onEnterLobby}
+                className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-base font-bold text-slate-950 transition hover:brightness-110"
               >
-                Use saved profile
+                Start game
               </button>
-            )}
-          </div>
-
-          <div className="rounded-[1.5rem] border border-white/8 bg-slate-950/45 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Quick rules</p>
-            <div className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
-              <p>Bulls are exact digits in exact positions.</p>
-              <p>Cows are correct digits in the wrong positions.</p>
-              <p>A wrong answer during a challenge is treated as a lie and adds pressure.</p>
             </div>
-          </div>
+          )}
         </article>
       </section>
     </>

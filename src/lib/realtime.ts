@@ -514,3 +514,41 @@ export async function unlockSecret(roomId: string, userId: string): Promise<void
     return room
   })
 }
+
+export async function votePlayAgain(roomId: string, userId: string): Promise<void> {
+  await runTransaction(roomRef(roomId), (room: RoomData | null) => {
+    if (!room || room.status !== 'finished' || !room.guestId) return room
+    if (!room.profiles[userId]) return room
+
+    room.replayVotes = room.replayVotes ?? {}
+    room.replayVotes[userId] = true
+
+    const hostReady = Boolean(room.replayVotes[room.hostId])
+    const guestReady = Boolean(room.replayVotes[room.guestId])
+
+    if (!hostReady || !guestReady) {
+      room.message = `${room.profiles[userId]?.username ?? 'Player'} wants to play again.`
+      return room
+    }
+
+    // Reset room state for a fresh rematch while keeping same players and settings.
+    room.status = 'rps'
+    room.rpsChoices = {}
+    room.rpsRound = 1
+    room.starterPlayerId = undefined
+    room.currentTurnPlayerId = undefined
+    room.secrets = {}
+    room.lockedSecrets = {}
+    room.pendingGuess = undefined
+    room.guessHistory = {}
+    room.winnerId = undefined
+    room.loserId = undefined
+    room.replayVotes = {}
+    room.penalties = {
+      [room.hostId]: 0,
+      [room.guestId]: 0,
+    }
+    room.message = 'Rematch starting. Pick RPS.'
+    return room
+  })
+}

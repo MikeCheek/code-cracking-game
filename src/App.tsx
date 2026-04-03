@@ -12,6 +12,7 @@ import {
   keepWaitingForRejoin,
   leaveRoom as leaveRoomRealtime,
   lockSecret,
+  votePlayAgain,
   unlockSecret,
   submitGuess,
   subscribeLobby,
@@ -28,6 +29,7 @@ import { clearUser, hasAudioConsent, loadAudioSettings, loadUser, saveAudioSetti
 import { generateRandomAvatar } from './utils/profile'
 import { GameplayPage } from './pages/GameplayPage'
 import { RoomsPage } from './pages/RoomsPage'
+import { ResultsPage } from './pages/ResultsPage'
 import { WaitingRoomPage } from './pages/WaitingRoomPage'
 import { WelcomePage } from './pages/WelcomePage'
 import { generateRoomName } from './utils/roomName'
@@ -77,6 +79,7 @@ function App() {
   const [claimedCows, setClaimedCows] = useState(0)
 
   const [showSettingsPanel, setShowSettingsPanel] = useState(false)
+  const [showRulesPanel, setShowRulesPanel] = useState(false)
   const [audioSettings, setAudioSettings] = useState<AudioSettings>(initialAudioSettings)
   const lastHandledHistoryIdRef = useRef<string | null>(null)
   const lastSeenRpsRoundRef = useRef<number | null>(null)
@@ -231,13 +234,19 @@ function App() {
 
     const waitingPath = `/room/${routeRoomId}/waiting`
     const playPath = `/room/${routeRoomId}/play`
+    const resultsPath = `/room/${routeRoomId}/results`
 
     if (room.status === 'waiting' && location.pathname !== waitingPath) {
       navigate(waitingPath, { replace: true })
       return
     }
 
-    if (room.status !== 'waiting' && location.pathname !== playPath) {
+    if (room.status === 'finished' && location.pathname !== resultsPath) {
+      navigate(resultsPath, { replace: true })
+      return
+    }
+
+    if (room.status !== 'waiting' && room.status !== 'finished' && location.pathname !== playPath) {
       navigate(playPath, { replace: true })
     }
   }, [location.pathname, navigate, routeRoomId, room])
@@ -279,6 +288,13 @@ function App() {
     return targetId === currentPlayerId
   }, [room, currentPlayerId])
 
+  const isCurrentSecretLocked = Boolean(
+    room &&
+    currentPlayerId &&
+    room.status === 'secrets' &&
+    room.lockedSecrets?.[currentPlayerId],
+  )
+
   const myTurn = room?.currentTurnPlayerId === currentPlayerId
   const mySecret = room && currentPlayerId ? room.secrets?.[currentPlayerId] : undefined
   const shouldShowDisconnectPauseModal = Boolean(
@@ -287,11 +303,6 @@ function App() {
     room.pausedByDisconnect.playerId !== currentPlayerId &&
     room.pausedByDisconnect.at !== dismissedPausePromptAt,
   )
-
-  const myHostedRooms = useMemo(() => {
-    if (!user) return []
-    return rooms.filter((entry) => entry.hostId === user.id)
-  }, [rooms, user])
 
   const joinableRooms = useMemo(() => rooms.filter((entry) => !entry.hasGuest), [rooms])
 
@@ -311,39 +322,37 @@ function App() {
     }
   }, [sortedHistory])
 
+  useEffect(() => {
+    setSecretLocked(isCurrentSecretLocked)
+  }, [isCurrentSecretLocked])
+
   const headerMeta = useMemo(() => {
     if (location.pathname === '/welcome') {
       return {
-        section: 'Identity',
-        title: 'Player Profile',
-        subtitle: 'Pick your name and avatar before entering the arena rooms.',
-        accent: 'from-emerald-100 via-cyan-50 to-white border-emerald-200/70',
+        title: 'Welcome',
       }
     }
 
     if (location.pathname === '/rooms') {
       return {
-        section: 'Lobby',
         title: 'Create Or Join Room',
-        subtitle: 'Open rooms, private matches, and hosted room controls all live here.',
-        accent: 'from-violet-100 via-fuchsia-50 to-white border-fuchsia-200/70',
       }
     }
 
     if (location.pathname.endsWith('/waiting')) {
       return {
-        section: 'Staging',
         title: 'Waiting Room',
-        subtitle: 'Share your invite while the room syncs before kickoff.',
-        accent: 'from-sky-100 via-blue-50 to-white border-sky-200/70',
+      }
+    }
+
+    if (location.pathname.endsWith('/results')) {
+      return {
+        title: 'Match Summary',
       }
     }
 
     return {
-      section: 'Battle',
       title: 'Live Match',
-      subtitle: 'RPS, secret setup, guesses, and lie tracking happen in this view.',
-      accent: 'from-amber-100 via-orange-50 to-white border-amber-200/70',
     }
   }, [location.pathname])
 
@@ -535,6 +544,10 @@ function App() {
 
   const onSubmitSecret = async () => {
     if (!room || !currentPlayerId) return
+    if (isCurrentSecretLocked) {
+      toast('Code is already locked.')
+      return
+    }
     try {
       await lockSecret(room.id, currentPlayerId, secretInput.trim())
       setSecretLocked(true)
@@ -573,6 +586,17 @@ function App() {
 
   const onAnswerGuess = async () => {
     if (!room || !currentPlayerId) return
+    const codeLengthLimit = room.settings.codeLength
+    if (
+      claimedBulls < 0 ||
+      claimedCows < 0 ||
+      claimedBulls > codeLengthLimit ||
+      claimedCows > codeLengthLimit ||
+      claimedBulls + claimedCows > codeLengthLimit
+    ) {
+      toast.error(`Strikes + Balls must be <= ${codeLengthLimit}`)
+      return
+    }
     try {
       await answerGuess(room.id, currentPlayerId, claimedBulls, claimedCows)
       setClaimedBulls(0)
@@ -620,6 +644,19 @@ function App() {
       setShowLeaveConfirmModal(false)
       toast.error(err instanceof Error ? err.message : 'Could not leave room')
     }
+  }
+
+  const onBackToGames = async () => {
+    if (!room || !currentPlayerId) {
+      resetRoomStateAndGoLobby()
+      return
+    }
+    try {
+      await leaveRoomRealtime(room.id, currentPlayerId)
+    } catch {
+      // If leave fails due to a race condition, still return to lobby locally.
+    }
+    resetRoomStateAndGoLobby()
   }
 
   const onCopyInvite = async () => {
@@ -678,6 +715,18 @@ function App() {
     }
   }
 
+  const onPlayAgain = async () => {
+    if (!room || !currentPlayerId) return
+    try {
+      await votePlayAgain(room.id, currentPlayerId)
+      toast.success('Replay request sent.')
+      playClick()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not request replay')
+      playAlert()
+    }
+  }
+
   const setMusicEnabled = (nextEnabled: boolean) => {
     setAudioSettings((current) => ({ ...current, musicEnabled: nextEnabled }))
   }
@@ -713,6 +762,18 @@ function App() {
     }
   }
 
+  const onSecretInputChange = (value: string) => {
+    if (isCurrentSecretLocked || !room) return
+    const digitsOnly = value.replace(/\D/g, '').slice(0, room.settings.codeLength)
+    setSecretInput(digitsOnly)
+  }
+
+  const onGuessInputChange = (value: string) => {
+    if (!room) return
+    const digitsOnly = value.replace(/\D/g, '').slice(0, room.settings.codeLength)
+    setGuessInput(digitsOnly)
+  }
+
   const onLogout = () => {
     clearUser()
     setUser(null)
@@ -727,6 +788,7 @@ function App() {
     setClaimedBulls(0)
     setClaimedCows(0)
     setShowSettingsPanel(false)
+    setShowRulesPanel(false)
     setShowUserMenu(false)
     setHotseatGuestProfile(null)
     setHotseatRevealedPlayerId(null)
@@ -735,7 +797,7 @@ function App() {
   }
 
   return (
-    <div className={`theme-${audioSettings.uiTheme} min-h-screen bg-orchid-pattern px-3 py-4 text-slate-100 app-noise sm:px-4 sm:py-6`}>
+    <div className={`theme-${audioSettings.uiTheme} h-dvh overflow-hidden bg-orchid-pattern px-3 py-3 text-slate-100 app-noise sm:px-4 sm:py-4`}>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -769,113 +831,59 @@ function App() {
         }}
       />
 
-      <div className="mx-auto max-w-6xl">
-        <header className={`glass-panel-strong relative z-[999] mb-6 rounded-[2rem] ${isWelcomeRoute ? 'p-5 md:p-7' : 'p-4 md:p-5'} `}>
-          {isWelcomeRoute ? (
-            <>
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan-300">{headerMeta.section}</p>
-                {user && (
-                  <div ref={userMenuRef} className="relative">
+      <div className="mx-auto flex h-full max-w-6xl flex-col">
+        <header className={`glass-panel-strong relative z-1 mb-3 rounded-3xl ${isWelcomeRoute ? 'p-4' : 'p-3 sm:p-4'}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-base lg:text-xl font-semibold uppercase tracking-[0.2em] text-cyan-300">{headerMeta.title}</p>
+              {/* <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Code Cracking Game</p> */}
+            </div>
+
+            {!isWelcomeRoute && user && (
+              <div ref={userMenuRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowUserMenu((open) => !open)}
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition hover:bg-white/10"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-base">{user.avatar}</span>
+                  <span className="max-w-[120px] truncate">{user.username}</span>
+                </button>
+
+                {showUserMenu && (
+                  <div className="glass-panel-strong absolute right-0 top-10 z-[888] w-44 rounded-xl p-2">
                     <button
                       type="button"
-                      onClick={() => setShowUserMenu((open) => !open)}
-                      className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition hover:bg-white/10"
+                      onClick={() => {
+                        setShowUserMenu(false)
+                        navigate('/welcome')
+                      }}
+                      className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
                     >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-base">{user.avatar}</span>
-                      <span className="max-w-[140px] truncate">{user.username}</span>
+                      Edit Profile
                     </button>
-
-                    {showUserMenu && (
-                      <div className="glass-panel-strong absolute right-0 top-10 z-[999] w-44 rounded-xl p-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowUserMenu(false)
-                            navigate('/welcome')
-                          }}
-                          className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-                        >
-                          Edit Profile
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowUserMenu(false)
-                            navigate('/rooms')
-                          }}
-                          className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-                        >
-                          Go To Rooms
-                        </button>
-                        <button
-                          type="button"
-                          onClick={onLogout}
-                          className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
-                        >
-                          Log Out
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false)
+                        navigate('/rooms')
+                      }}
+                      className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+                    >
+                      Games Page
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onLogout}
+                      className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
+                    >
+                      Log Out
+                    </button>
                   </div>
                 )}
               </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-6xl">{headerMeta.title}</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 md:text-base">{headerMeta.subtitle}</p>
-            </>
-          ) : (
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="font-mono text-xs uppercase tracking-[0.28em] text-cyan-300">{headerMeta.section}</p>
-                <p className="mt-1 text-xl font-extrabold text-white md:text-3xl">{headerMeta.title}</p>
-                <p className="mt-1 text-sm text-slate-300">{headerMeta.subtitle}</p>
-              </div>
-              {user && (
-                <div ref={userMenuRef} className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowUserMenu((open) => !open)}
-                    className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition hover:bg-white/10"
-                  >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-base">{user.avatar}</span>
-                    <span className="max-w-[140px] truncate">{user.username}</span>
-                  </button>
-
-                  {showUserMenu && (
-                    <div className="glass-panel-strong absolute right-0 top-10 z-[999] w-44 rounded-xl p-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false)
-                          navigate('/welcome')
-                        }}
-                        className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-                      >
-                        Edit Profile
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false)
-                          navigate('/rooms')
-                        }}
-                        className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-                      >
-                        Go To Rooms
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onLogout}
-                        className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
-                      >
-                        Log Out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </header>
 
         {inRoomsRoute && lastLeftRoomId && (
@@ -903,11 +911,12 @@ function App() {
           </section>
         )}
 
-        <Routes>
-          <Route
-            path="/"
-            element={<Navigate to={user ? '/rooms' : '/welcome'} replace />}
-          />
+        <main className="flex-1 overflow-y-auto pb-24">
+          <Routes>
+            <Route
+              path="/"
+              element={<Navigate to={user ? '/rooms' : '/welcome'} replace />}
+            />
 
           <Route
             path="/welcome"
@@ -935,9 +944,7 @@ function App() {
             element={
               user ? (
                 <RoomsPage
-                  currentUserAvatar={user.avatar}
                   joinableRooms={joinableRooms}
-                  myHostedRooms={myHostedRooms}
                   codeLength={codeLength}
                   allowDuplicates={allowDuplicates}
                   isPrivate={isPrivate}
@@ -960,8 +967,6 @@ function App() {
                   onJoinPasswordChange={setJoinPassword}
                   onCreateRoom={onCreateRoom}
                   onJoinRoom={onJoinRoom}
-                  onJoinOwnRoomAsGuest={onJoinOwnRoomAsGuest}
-                  onDeleteHostedRoom={onDeleteHostedRoom}
                 />
               ) : (
                 <Navigate to="/welcome" replace />
@@ -1003,55 +1008,78 @@ function App() {
             }
           />
 
-          <Route
-            path="/room/:roomId/play"
-            element={
-              user ? (
-                room ? (
-                  <GameplayPage
-                    user={user}
-                    room={room}
-                    myProfile={myProfile}
-                    opponentProfile={opponentProfile}
-                    sortedHistory={sortedHistory}
-                    pendingForResponder={pendingForResponder}
-                    myTurn={Boolean(myTurn)}
-                    rpsChoice={rpsChoice}
-                    secretInput={secretInput}
-                    secretLocked={secretLocked}
-                    guessInput={guessInput}
-                    claimedBulls={claimedBulls}
-                    claimedCows={claimedCows}
-                    mySecret={mySecret}
-                    onRpsChoice={onPickRps}
-                    onSecretInputChange={setSecretInput}
-                    onGuessInputChange={setGuessInput}
-                    onClaimedBullsChange={setClaimedBulls}
-                    onClaimedCowsChange={setClaimedCows}
-                    onSubmitSecret={onSubmitSecret}
-                    onUnlockSecret={onUnlockSecret}
-                    onSubmitGuess={onSubmitGuess}
-                    onAnswerGuess={onAnswerGuess}
-                    onCopyInvite={onCopyInvite}
-                    onShareTelegram={onShareInviteTelegram}
-                    onShareWhatsApp={onShareInviteWhatsApp}
-                    onLeaveRoom={requestLeaveRoom}
-                    onDeleteRoom={() => onDeleteHostedRoom(room.id)}
-                  />
+            <Route
+              path="/room/:roomId/play"
+              element={
+                user ? (
+                  room ? (
+                    <GameplayPage
+                      user={user}
+                      room={room}
+                      myProfile={myProfile}
+                      opponentProfile={opponentProfile}
+                      sortedHistory={sortedHistory}
+                      pendingForResponder={pendingForResponder}
+                      myTurn={Boolean(myTurn)}
+                      rpsChoice={rpsChoice}
+                      secretInput={secretInput}
+                      secretLocked={isCurrentSecretLocked || secretLocked}
+                      guessInput={guessInput}
+                      claimedBulls={claimedBulls}
+                      claimedCows={claimedCows}
+                      mySecret={mySecret}
+                      onRpsChoice={onPickRps}
+                      onSecretInputChange={onSecretInputChange}
+                      onGuessInputChange={onGuessInputChange}
+                      onClaimedBullsChange={setClaimedBulls}
+                      onClaimedCowsChange={setClaimedCows}
+                      onSubmitSecret={onSubmitSecret}
+                      onUnlockSecret={onUnlockSecret}
+                      onSubmitGuess={onSubmitGuess}
+                      onAnswerGuess={onAnswerGuess}
+                      onLeaveRoom={requestLeaveRoom}
+                      onDeleteRoom={() => onDeleteHostedRoom(room.id)}
+                    />
+                  ) : (
+                    <section className="glass-panel rounded-3xl p-6">
+                      <h2 className="text-2xl font-bold text-white">Loading room...</h2>
+                      <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
+                    </section>
+                  )
                 ) : (
-                  <section className="glass-panel rounded-3xl p-6">
-                    <h2 className="text-2xl font-bold text-white">Loading room...</h2>
-                    <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
-                  </section>
+                  <Navigate to="/welcome" replace />
                 )
-              ) : (
-                <Navigate to="/welcome" replace />
-              )
-            }
-          />
+              }
+            />
 
-          <Route path="*" element={<Navigate to={user ? '/rooms' : '/welcome'} replace />} />
-        </Routes>
+            <Route
+              path="/room/:roomId/results"
+              element={
+                user ? (
+                  room ? (
+                    <ResultsPage
+                      room={room}
+                      myProfile={myProfile}
+                      opponentProfile={opponentProfile}
+                      sortedHistory={sortedHistory}
+                      onBackToRooms={onBackToGames}
+                      onPlayAgain={onPlayAgain}
+                    />
+                  ) : (
+                    <section className="glass-panel rounded-3xl p-6">
+                      <h2 className="text-2xl font-bold text-white">Loading room...</h2>
+                      <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
+                    </section>
+                  )
+                ) : (
+                  <Navigate to="/welcome" replace />
+                )
+              }
+            />
+
+            <Route path="*" element={<Navigate to={user ? '/rooms' : '/welcome'} replace />} />
+          </Routes>
+        </main>
       </div>
 
       <a
@@ -1071,11 +1099,40 @@ function App() {
 
       <button
         type="button"
-        onClick={() => setShowSettingsPanel((open) => !open)}
-        className="!fixed bottom-4 right-4 z-40 rounded-full border border-white/20 bg-slate-900/85 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-xl backdrop-blur transition hover:bg-slate-900 sm:bottom-5 sm:right-5"
+        onClick={() => setShowRulesPanel((open) => !open)}
+        className="fixed bottom-16 right-4 z-40 rounded-full border border-white/20 bg-slate-900/85 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-xl backdrop-blur transition hover:bg-slate-900 sm:bottom-[88px] sm:right-5"
       >
-        Quick Settings
+        Rules
       </button>
+
+      <button
+        type="button"
+        onClick={() => setShowSettingsPanel((open) => !open)}
+        className="fixed bottom-4 right-4 z-40 rounded-full border border-white/20 bg-slate-900/85 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-xl backdrop-blur transition hover:bg-slate-900 sm:bottom-5 sm:right-5"
+      >
+        Settings
+      </button>
+
+      {showRulesPanel && (
+        <section className="glass-panel-strong fixed bottom-28 right-3 z-50 w-[min(95vw,360px)] rounded-2xl p-4 sm:bottom-36 sm:right-5">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-extrabold text-white">Rules</h3>
+            <button
+              type="button"
+              onClick={() => setShowRulesPanel(false)}
+              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+            >
+              Close
+            </button>
+          </div>
+          <div className="mt-3 space-y-2 text-sm text-slate-200">
+            <p>Guess the opponent code.</p>
+            <p>Strikes: right digit in right position.</p>
+            <p>Balls: right digit in wrong position.</p>
+            <p>Too many lies lose the game.</p>
+          </div>
+        </section>
+      )}
 
       {showSettingsPanel && (
         <section className="glass-panel-strong fixed bottom-16 right-3 z-50 w-[min(95vw,360px)] rounded-2xl p-4 sm:bottom-20 sm:right-5">
@@ -1231,7 +1288,7 @@ function App() {
       )}
 
       {showHotseatPassOverlay && room && hotseatPendingPlayerId && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-xl">
           <button
             type="button"
             onClick={() => {

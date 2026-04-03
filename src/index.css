@@ -319,6 +319,18 @@ body::after {
   }
 }
 
+@keyframes hourglassFlip {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 /* Utility classes */
 .animate-slide-in-down {
   animation: slideInDown 0.5s ease-out;
@@ -410,4 +422,8 @@ body::after {
 
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
+}
+
+.animate-hourglass {
+  animation: hourglassFlip 1.8s ease-in-out infinite;
 }
