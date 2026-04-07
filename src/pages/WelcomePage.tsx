@@ -215,6 +215,12 @@ export function WelcomePage({
       )}
 
       <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_1fr_auto] gap-4 overflow-hidden">
+        <img
+          src="/codecracking.png"
+          alt="Code Cracking logo"
+          className="mx-auto h-20 w-20 rounded-2xl border border-white/20 object-cover shadow-[0_14px_45px_rgba(0,0,0,0.45)]"
+          loading="eager"
+        />
         <p className="text-center text-2xl font-black tracking-tight text-white sm:text-4xl">Code Cracking Game</p>
 
         <article className="glass-panel-strong flex flex-col items-center justify-center rounded-3xl p-4 sm:p-6">

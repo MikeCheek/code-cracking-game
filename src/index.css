@@ -319,6 +319,37 @@ body::after {
   }
 }
 
+@keyframes pulseCore {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.loader-ring {
+  box-shadow: 0 0 24px rgba(var(--glow-1), 0.2);
+}
+
+.loader-ring-spin {
+  animation: spin-slow 1.25s linear infinite;
+}
+
+.loader-ring-reverse {
+  animation: spin-slow 1.8s linear infinite reverse;
+}
+
+.loader-core-glow {
+  box-shadow:
+    0 0 18px rgba(var(--glow-1), 0.8),
+    0 0 30px rgba(var(--glow-2), 0.6);
+  animation: pulseCore 1.4s ease-in-out infinite;
+}
+
 @keyframes hourglassFlip {
   0% {
     transform: rotate(0deg);

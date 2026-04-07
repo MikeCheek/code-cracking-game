@@ -1116,9 +1116,23 @@ function App() {
       <div className="mx-auto flex h-full max-w-6xl flex-col pt-24">
 
         {isAuthInitializing && (
-          <section className="mb-4 rounded-2xl border border-white/15 bg-slate-900/60 p-4 text-sm text-slate-200 backdrop-blur">
-            Initializing secure session...
-          </section>
+          <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/90 px-6 backdrop-blur-xl">
+            <div className="relative flex w-full max-w-sm flex-col items-center rounded-3xl border border-white/15 bg-slate-900/75 px-8 py-10 shadow-[0_30px_90px_rgba(0,0,0,0.55)]">
+              <div className="pointer-events-none absolute -top-24 h-48 w-48 rounded-full bg-fuchsia-400/20 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-24 h-48 w-48 rounded-full bg-violet-400/20 blur-3xl" />
+
+              <div className="relative h-24 w-24">
+                <div className="loader-ring absolute inset-0 rounded-full border-2 border-fuchsia-200/20" />
+                <div className="loader-ring loader-ring-spin absolute inset-1 rounded-full border-t-2 border-r-2 border-fuchsia-300" />
+                <div className="loader-ring loader-ring-reverse absolute inset-4 rounded-full border-l-2 border-violet-300/90" />
+                <div className="loader-core-glow absolute inset-[34%] rounded-full bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-300" />
+              </div>
+
+              <p className="mt-7 text-center text-sm font-bold uppercase tracking-[0.22em] text-fuchsia-200/90">Secure Session</p>
+              <h2 className="mt-2 text-center text-2xl font-black tracking-tight text-white">Initializing...</h2>
+              <p className="mt-3 text-center text-sm text-slate-300">Encrypting lobby access and preparing your realtime connection.</p>
+            </div>
+          </div>
         )}
 
         {inRoomsRoute && lastLeftRoomId && (
@@ -1526,10 +1540,12 @@ function App() {
               {showSettingsModal === 'rules' && (
                 <div className="space-y-3 text-sm text-slate-200">
                   <h3 className="text-lg font-bold text-white">Game Rules</h3>
-                  <p>Guess the opponent code.</p>
-                  <p><strong>Strikes:</strong> right digit in right position.</p>
-                  <p><strong>Balls:</strong> right digit in wrong position.</p>
-                  <p><strong>Lies:</strong> Too many lies lose the game.</p>
+                  <p>Set your secret code first, then alternate turns to crack your opponent's code before they crack yours.</p>
+                  <p><strong>Strikes:</strong> Correct symbol in the correct position.</p>
+                  <p><strong>Balls:</strong> Correct symbol but placed in the wrong position.</p>
+                  <p><strong>Winning:</strong> You win instantly when your guess matches every position in the opponent's secret.</p>
+                  <p><strong>Duplicates:</strong> If duplicate symbols are enabled, the same symbol can appear more than once in a secret.</p>
+                  <p><strong>Lies Mode:</strong> If lies are allowed, players may fake Bulls/Cows feedback, but lying too many times causes an automatic loss.</p>
                 </div>
               )}
 
