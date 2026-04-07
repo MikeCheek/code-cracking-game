@@ -1429,7 +1429,7 @@ function App() {
           </button>
 
           {showUserMenu && (
-            <div className="glass-panel-strong fixed top-20 right-3 z-50 w-[min(95vw,360px)] rounded-xl p-2 sm:top-24 sm:right-5 max-h-[70vh] overflow-y-auto">
+            <div className="glass-panel-strong fixed top-20 right-3 w-[200px] z-50 rounded-xl p-2 sm:top-24 sm:right-5 max-h-[70vh] overflow-y-auto">
               <button
                 type="button"
                 onClick={() => {

@@ -174,6 +174,8 @@ export function GameplayPage({
   const [selectedQuickEmote, setSelectedQuickEmote] = useState(QUICK_EMOTES[0])
   const [showAllGuesses, setShowAllGuesses] = useState(false)
   const [flyingEmotes, setFlyingEmotes] = useState<FlyingEmote[]>([])
+  const [emotesEnabled, setEmotesEnabled] = useState(true)
+  const [emoteScale, setEmoteScale] = useState(1)
   const [rpsNow, setRpsNow] = useState(0)
   const gameMenuRef = useRef<HTMLDivElement | null>(null)
   const latestQuickEmoteAtRef = useRef<Record<string, number>>({})
@@ -470,55 +472,89 @@ export function GameplayPage({
           )}
         </article>
 
-        <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
-          {flyingEmotes.map((entry) => (
-            <span
-              key={entry.id}
-              className="quick-emote-fly"
-              style={{
-                ['--emote-origin-x' as string]: `${entry.originX}px`,
-                ['--emote-origin-y' as string]: `${entry.originY}px`,
-                ['--emote-x1' as string]: `${entry.x1}px`,
-                ['--emote-y1' as string]: `${entry.y1}px`,
-                ['--emote-x2' as string]: `${entry.x2}px`,
-                ['--emote-y2' as string]: `${entry.y2}px`,
-                ['--emote-x3' as string]: `${entry.x3}px`,
-                ['--emote-y3' as string]: `${entry.y3}px`,
-                ['--emote-x4' as string]: `${entry.x4}px`,
-                ['--emote-y4' as string]: `${entry.y4}px`,
-                ['--emote-rotate1' as string]: `${entry.rotate1}deg`,
-                ['--emote-rotate2' as string]: `${entry.rotate2}deg`,
-                ['--emote-rotate3' as string]: `${entry.rotate3}deg`,
-                ['--emote-rotate4' as string]: `${entry.rotate4}deg`,
-                ['--emote-scale1' as string]: `${entry.scale1}`,
-                ['--emote-scale2' as string]: `${entry.scale2}`,
-                ['--emote-scale3' as string]: `${entry.scale3}`,
-                ['--emote-scale4' as string]: `${entry.scale4}`,
-                ['--emote-duration' as string]: `${entry.durationMs}ms`,
-              }}
-            >
-              {entry.value}
-            </span>
-          ))}
-        </div>
+        {emotesEnabled && (
+          <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
+            {flyingEmotes.map((entry) => (
+              <span
+                key={entry.id}
+                className="quick-emote-fly"
+                style={{
+                  ['--emote-origin-x' as string]: `${entry.originX}px`,
+                  ['--emote-origin-y' as string]: `${entry.originY}px`,
+                  ['--emote-x1' as string]: `${entry.x1}px`,
+                  ['--emote-y1' as string]: `${entry.y1}px`,
+                  ['--emote-x2' as string]: `${entry.x2}px`,
+                  ['--emote-y2' as string]: `${entry.y2}px`,
+                  ['--emote-x3' as string]: `${entry.x3}px`,
+                  ['--emote-y3' as string]: `${entry.y3}px`,
+                  ['--emote-x4' as string]: `${entry.x4}px`,
+                  ['--emote-y4' as string]: `${entry.y4}px`,
+                  ['--emote-rotate1' as string]: `${entry.rotate1}deg`,
+                  ['--emote-rotate2' as string]: `${entry.rotate2}deg`,
+                  ['--emote-rotate3' as string]: `${entry.rotate3}deg`,
+                  ['--emote-rotate4' as string]: `${entry.rotate4}deg`,
+                  ['--emote-scale1' as string]: `${entry.scale1}`,
+                  ['--emote-scale2' as string]: `${entry.scale2}`,
+                  ['--emote-scale3' as string]: `${entry.scale3}`,
+                  ['--emote-scale4' as string]: `${entry.scale4}`,
+                  ['--emote-duration' as string]: `${entry.durationMs}ms`,
+                  ['--emote-base-scale' as string]: `${emoteScale}`,
+                }}
+              >
+                {entry.value}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
           {showEmotePicker && (
-            <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-white/10 p-2 max-h-44">
-              <div className="grid grid-cols-5 gap-2">
-              {QUICK_EMOTES.map((emote) => (
+            <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 p-3 space-y-3">
+              <div className="space-y-2">
                 <button
-                  key={emote}
                   type="button"
-                  onClick={() => {
-                    sendQuickEmote(emote)
-                    setShowEmotePicker(false)
-                  }}
-                  className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-xl leading-none transition hover:scale-105 hover:bg-white/10"
+                  onClick={() => setEmotesEnabled((enabled) => !enabled)}
+                  className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    emotesEnabled
+                      ? 'bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30'
+                      : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30'
+                  }`}
                 >
-                  {emote}
+                  {emotesEnabled ? 'Receiving emotes: ON' : 'Receiving emotes: OFF'}
                 </button>
-              ))}
+                <div className="px-1">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="text-xs font-medium text-slate-300">Received size</label>
+                    <span className="text-xs text-slate-400">{Math.round(emoteScale * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value={emoteScale}
+                    onChange={(e) => setEmoteScale(parseFloat(e.currentTarget.value))}
+                    className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-cyan-400"
+                  />
+                </div>
+              </div>
+
+              <div className="max-h-44 overflow-y-auto">
+                <div className="grid grid-cols-5 gap-2">
+                  {QUICK_EMOTES.map((emote) => (
+                    <button
+                      key={emote}
+                      type="button"
+                      onClick={() => {
+                        sendQuickEmote(emote)
+                        setShowEmotePicker(false)
+                      }}
+                      className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-xl leading-none transition hover:scale-105 hover:bg-white/10"
+                    >
+                      {emote}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -528,7 +564,7 @@ export function GameplayPage({
             onPointerUp={onMainEmotePointerEnd}
             onPointerCancel={onMainEmotePointerEnd}
             onPointerLeave={onMainEmotePointerEnd}
-            className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
+            className="flex h-14 w-14 select-none items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
             aria-label="Toggle quick emotes"
             aria-expanded={showEmotePicker}
           >
@@ -1046,55 +1082,89 @@ export function GameplayPage({
         </div>
       )}
 
-      <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
-        {flyingEmotes.map((entry) => (
-          <span
-            key={entry.id}
-            className="quick-emote-fly"
-            style={{
-              ['--emote-origin-x' as string]: `${entry.originX}px`,
-              ['--emote-origin-y' as string]: `${entry.originY}px`,
-              ['--emote-x1' as string]: `${entry.x1}px`,
-              ['--emote-y1' as string]: `${entry.y1}px`,
-              ['--emote-x2' as string]: `${entry.x2}px`,
-              ['--emote-y2' as string]: `${entry.y2}px`,
-              ['--emote-x3' as string]: `${entry.x3}px`,
-              ['--emote-y3' as string]: `${entry.y3}px`,
-              ['--emote-x4' as string]: `${entry.x4}px`,
-              ['--emote-y4' as string]: `${entry.y4}px`,
-              ['--emote-rotate1' as string]: `${entry.rotate1}deg`,
-              ['--emote-rotate2' as string]: `${entry.rotate2}deg`,
-              ['--emote-rotate3' as string]: `${entry.rotate3}deg`,
-              ['--emote-rotate4' as string]: `${entry.rotate4}deg`,
-              ['--emote-scale1' as string]: `${entry.scale1}`,
-              ['--emote-scale2' as string]: `${entry.scale2}`,
-              ['--emote-scale3' as string]: `${entry.scale3}`,
-              ['--emote-scale4' as string]: `${entry.scale4}`,
-              ['--emote-duration' as string]: `${entry.durationMs}ms`,
-            }}
-          >
-            {entry.value}
-          </span>
-        ))}
-      </div>
+      {emotesEnabled && (
+        <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
+          {flyingEmotes.map((entry) => (
+            <span
+              key={entry.id}
+              className="quick-emote-fly"
+              style={{
+                ['--emote-origin-x' as string]: `${entry.originX}px`,
+                ['--emote-origin-y' as string]: `${entry.originY}px`,
+                ['--emote-x1' as string]: `${entry.x1}px`,
+                ['--emote-y1' as string]: `${entry.y1}px`,
+                ['--emote-x2' as string]: `${entry.x2}px`,
+                ['--emote-y2' as string]: `${entry.y2}px`,
+                ['--emote-x3' as string]: `${entry.x3}px`,
+                ['--emote-y3' as string]: `${entry.y3}px`,
+                ['--emote-x4' as string]: `${entry.x4}px`,
+                ['--emote-y4' as string]: `${entry.y4}px`,
+                ['--emote-rotate1' as string]: `${entry.rotate1}deg`,
+                ['--emote-rotate2' as string]: `${entry.rotate2}deg`,
+                ['--emote-rotate3' as string]: `${entry.rotate3}deg`,
+                ['--emote-rotate4' as string]: `${entry.rotate4}deg`,
+                ['--emote-scale1' as string]: `${entry.scale1}`,
+                ['--emote-scale2' as string]: `${entry.scale2}`,
+                ['--emote-scale3' as string]: `${entry.scale3}`,
+                ['--emote-scale4' as string]: `${entry.scale4}`,
+                ['--emote-duration' as string]: `${entry.durationMs}ms`,
+                ['--emote-base-scale' as string]: `${emoteScale}`,
+              }}
+            >
+              {entry.value}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
         {showEmotePicker && (
-          <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-white/10 p-2 max-h-44">
-            <div className="grid grid-cols-5 gap-2">
-            {QUICK_EMOTES.map((emote) => (
+          <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 p-3 space-y-3">
+            <div className="space-y-2">
               <button
-                key={emote}
                 type="button"
-                onClick={() => {
-                  sendQuickEmote(emote)
-                  setShowEmotePicker(false)
-                }}
-                className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-xl leading-none transition hover:scale-105 hover:bg-white/10"
+                onClick={() => setEmotesEnabled((enabled) => !enabled)}
+                className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  emotesEnabled
+                    ? 'bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30'
+                    : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30'
+                }`}
               >
-                {emote}
+                {emotesEnabled ? 'Receiving emotes: ON' : 'Receiving emotes: OFF'}
               </button>
-            ))}
+              <div className="px-1">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <label className="text-xs font-medium text-slate-300">Received size</label>
+                  <span className="text-xs text-slate-400">{Math.round(emoteScale * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={emoteScale}
+                  onChange={(e) => setEmoteScale(parseFloat(e.currentTarget.value))}
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-cyan-400"
+                />
+              </div>
+            </div>
+
+            <div className="max-h-44 overflow-y-auto">
+              <div className="grid grid-cols-5 gap-2">
+                {QUICK_EMOTES.map((emote) => (
+                  <button
+                    key={emote}
+                    type="button"
+                    onClick={() => {
+                      sendQuickEmote(emote)
+                      setShowEmotePicker(false)
+                    }}
+                    className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-xl leading-none transition hover:scale-105 hover:bg-white/10"
+                  >
+                    {emote}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1104,7 +1174,7 @@ export function GameplayPage({
           onPointerUp={onMainEmotePointerEnd}
           onPointerCancel={onMainEmotePointerEnd}
           onPointerLeave={onMainEmotePointerEnd}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
+          className="flex h-14 w-14 select-none items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
           aria-label="Toggle quick emotes"
           aria-expanded={showEmotePicker}
         >
