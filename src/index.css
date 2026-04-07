@@ -130,10 +130,10 @@ body {
   z-index: 0;
 }
 
-.bg-orchid-pattern > * {
+/* .bg-orchid-pattern > * { */
   /* position: relative; */
-  z-index: 1;
-}
+  /* z-index: 1; */
+/* } */
 
 @keyframes bloomShift {
   0% {

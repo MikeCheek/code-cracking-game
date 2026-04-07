@@ -1046,7 +1046,7 @@ export function GameplayPage({
                 <span>Locking in...</span>
                 <span>{rpsTimeLeftSeconds}s</span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/5">
+              <div className="h-2 w-full  rounded-full border border-white/10 bg-white/5">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-300 via-cyan-300 to-fuchsia-300 transition-[width] duration-100"
                   style={{ width: `${rpsProgress * 100}%` }}

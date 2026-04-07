@@ -32,7 +32,7 @@ export function ResultsPage({
   }
 
   return (
-    <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_auto_1fr_auto] gap-3 overflow-hidden">
+    <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_auto_1fr_auto] gap-3 ">
       <article className="glass-panel rounded-3xl p-4">
         <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Results</p>
         <h2 className="mt-1 text-2xl font-bold text-white">{winner ? `${winner.avatar} ${winner.username} won` : 'Match finished'}</h2>

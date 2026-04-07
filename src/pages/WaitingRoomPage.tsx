@@ -42,7 +42,7 @@ export function WaitingRoomPage({
   ]
 
   return (
-    <section className="mx-auto grid h-full w-full max-w-4xl grid-rows-[auto_1fr_auto] gap-3 overflow-hidden">
+    <section className="mx-auto grid h-full w-full max-w-4xl grid-rows-[auto_1fr_auto] gap-3 ">
       <article className="glass-panel-strong rounded-3xl p-4 z-1">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -97,7 +97,7 @@ export function WaitingRoomPage({
         </div>
       </article>
 
-      <article className="grid grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_1fr]">
+      <article className="grid grid-cols-1 gap-3  lg:grid-cols-[1fr_1fr]">
         <div className="glass-panel rounded-3xl p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Participants</p>
           <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white">

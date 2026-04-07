@@ -79,7 +79,7 @@ export function RoomsPage({
   }
 
   return (
-    <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_1fr] gap-3 overflow-hidden">
+    <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_1fr] gap-3 ">
       <article className="glass-panel-strong rounded-3xl p-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-bold text-white">Open games</h2>

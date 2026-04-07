@@ -214,7 +214,7 @@ export function WelcomePage({
         </div>
       )}
 
-      <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_1fr_auto] gap-4 overflow-hidden">
+      <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_1fr_auto] gap-4 ">
         <img
           src="/codecracking.png"
           alt="Code Cracking logo"

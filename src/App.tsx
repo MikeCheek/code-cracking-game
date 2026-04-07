@@ -113,7 +113,8 @@ function App() {
   const [claimedBulls, setClaimedBulls] = useState(0)
   const [claimedCows, setClaimedCows] = useState(0)
 
-  const [showSettingsModal, setShowSettingsModal] = useState<'rules' | 'settings' | null>(null)
+  const [showInfoModal, setShowInfoModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [audioSettings, setAudioSettings] = useState<AudioSettings>(initialAudioSettings)
   const lastHandledHistoryIdRef = useRef<string | null>(null)
   const lastSeenRpsRoundRef = useRef<number | null>(null)
@@ -1007,7 +1008,7 @@ function App() {
     setClaimedCows(0)
     setSelectedGameMode(DEFAULT_GAME_MODE)
     setSelectedWordLanguage(DEFAULT_WORD_LANGUAGE)
-    setShowSettingsModal(null)
+    setShowSettingsModal(false)
     setShowUserMenu(false)
     setHotseatGuestProfile(null)
     setHotseatRevealedPlayerId(null)
@@ -1023,7 +1024,7 @@ function App() {
   }
 
   return (
-    <div className={`theme-${audioSettings.uiTheme} h-dvh overflow-hidden bg-orchid-pattern px-3 py-3 text-slate-100 app-noise sm:px-4 sm:py-4`}>
+    <div className={`theme-${audioSettings.uiTheme} min-h-dvh bg-orchid-pattern px-3 py-3 text-slate-100 app-noise sm:px-4 sm:py-4`}>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -1416,7 +1417,7 @@ function App() {
         </main>
       </div>
 
-      <a
+       {!isWelcomeRoute? <a
         href="https://ko-fi.com/K3K21X43RG"
         target="_blank"
         rel="noreferrer"
@@ -1430,6 +1431,8 @@ function App() {
           alt="Buy Me a Coffee at ko-fi.com"
         />
       </a>
+      :<></>
+      }
 
       {!isWelcomeRoute && user && (
         <div ref={userMenuRef}>
@@ -1443,7 +1446,7 @@ function App() {
           </button>
 
           {showUserMenu && (
-            <div className="glass-panel-strong fixed top-20 right-3 w-[200px] z-50 rounded-xl p-2 sm:top-24 sm:right-5 max-h-[70vh] overflow-y-auto">
+            <div className="glass-panel-strong fixed top-20 right-3 w-[200px] z-50 rounded-xl p-2 sm:top-24 sm:right-5 overflow-y-auto">
               <button
                 type="button"
                 onClick={() => {
@@ -1480,7 +1483,17 @@ function App() {
                 type="button"
                 onClick={() => {
                   setShowUserMenu(false)
-                  setShowSettingsModal('settings')
+                  setShowInfoModal(true)
+                }}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+              >
+                Info
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUserMenu(false)
+                  setShowSettingsModal(true)
                 }}
                 className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-100 transition hover:bg-white/10"
               >
@@ -1499,37 +1512,57 @@ function App() {
         </div>
       )}
 
-      {showSettingsModal && (
+      {showInfoModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
-          <div className="glass-panel-strong w-full max-w-2xl max-h-[85vh] rounded-3xl overflow-hidden flex flex-col">
+          <div className="glass-panel-strong w-full max-w-2xl max-h-[85vh] rounded-3xl  flex flex-col">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowSettingsModal('rules')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                    showSettingsModal === 'rules'
-                      ? 'bg-fuchsia-300/20 border border-fuchsia-300/40 text-white'
-                      : 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                  }`}
-                >
-                  Rules
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSettingsModal('settings')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                    showSettingsModal === 'settings'
-                      ? 'bg-fuchsia-300/20 border border-fuchsia-300/40 text-white'
-                      : 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                  }`}
-                >
-                  Settings
-                </button>
-              </div>
+              <h3 className="text-lg font-bold text-white">Game Info</h3>
               <button
                 type="button"
-                onClick={() => setShowSettingsModal(null)}
+                onClick={() => setShowInfoModal(false)}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4 text-sm text-slate-200">
+              <div className="space-y-2">
+                <h4 className="text-base font-bold text-white">Rules</h4>
+                <p>Set your secret code first, then alternate turns to crack your opponent's code before they crack yours.</p>
+                <p><strong>Strikes:</strong> Correct symbol in the correct position.</p>
+                <p><strong>Balls:</strong> Correct symbol but placed in the wrong position.</p>
+                <p><strong>Winning:</strong> You win instantly when your guess matches every position in the opponent's secret.</p>
+                <p><strong>Duplicates:</strong> If duplicate symbols are enabled, the same symbol can appear more than once in a secret.</p>
+                <p><strong>Lies Mode:</strong> If lies are allowed, players may fake Bulls/Cows feedback, but lying too many times causes an automatic loss.</p>
+              </div>
+
+              <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <h4 className="text-base font-bold text-white">Creator</h4>
+                <p>Made by Michele Pulvirenti.</p>
+                <p>If you enjoy the game and want to support it, donations are appreciated.</p>
+                <a
+                  href="https://ko-fi.com/K3K21X43RG"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex rounded-xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110"
+                >
+                  Support With a Donation
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-2xl max-h-[85vh] rounded-3xl  flex flex-col">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
+              <h3 className="text-lg font-bold text-white">Settings</h3>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
                 className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Close
@@ -1537,21 +1570,8 @@ function App() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-4">
-              {showSettingsModal === 'rules' && (
-                <div className="space-y-3 text-sm text-slate-200">
-                  <h3 className="text-lg font-bold text-white">Game Rules</h3>
-                  <p>Set your secret code first, then alternate turns to crack your opponent's code before they crack yours.</p>
-                  <p><strong>Strikes:</strong> Correct symbol in the correct position.</p>
-                  <p><strong>Balls:</strong> Correct symbol but placed in the wrong position.</p>
-                  <p><strong>Winning:</strong> You win instantly when your guess matches every position in the opponent's secret.</p>
-                  <p><strong>Duplicates:</strong> If duplicate symbols are enabled, the same symbol can appear more than once in a secret.</p>
-                  <p><strong>Lies Mode:</strong> If lies are allowed, players may fake Bulls/Cows feedback, but lying too many times causes an automatic loss.</p>
-                </div>
-              )}
-
-              {showSettingsModal === 'settings' && (
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-4">Settings</h3>
+                  <h3 className="text-lg font-bold text-white mb-4">Audio & Visual</h3>
                   
                   <div className="space-y-4">
                     <div>
@@ -1638,7 +1658,6 @@ function App() {
                     </div>
                   </div>
                 </div>
-              )}
             </div>
           </div>
         </div>
@@ -1734,7 +1753,7 @@ function App() {
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-fuchsia-300">Rock Paper Scissors</p>
             <p className="mt-2 text-sm text-slate-300">{rpsShowdown.result === 'tie' ? 'Tie round. Play again.' : 'Winner gets first turn'}</p>
 
-            <div className="relative mt-6 h-28 overflow-hidden">
+            <div className="relative mt-6 h-28 ">
               <div
                 className={`rps-showdown-token rps-showdown-left ${
                   rpsShowdown.result === 'host' ? 'rps-showdown-left-win' : rpsShowdown.result === 'tie' ? 'rps-showdown-left-tie' : 'rps-showdown-left-lose'
