@@ -289,7 +289,7 @@ export function WelcomePage({
                 onClick={onUseSavedProfile}
                 className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:brightness-110"
               >
-                Start game
+                Enter game
               </button>
             </div>
           ) : (
@@ -317,7 +317,7 @@ export function WelcomePage({
                 onClick={onEnterLobby}
                 className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-base font-bold text-slate-950 transition hover:brightness-110"
               >
-                Start game
+                Enter game
               </button>
             </div>
           )}

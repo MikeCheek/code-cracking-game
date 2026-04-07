@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import type { PlayerProfile, RoomData, UserProfile } from '../types'
 import { WORD_LANGUAGE_LABELS } from '../constants'
 import { getRoomGameMode, getRoomWordLanguage } from '../utils/gameMode'
@@ -29,6 +30,8 @@ export function WaitingRoomPage({
   onShareWhatsApp,
   onJoinAsPlayer2,
 }: WaitingRoomPageProps) {
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
   const roomTags = [
     room.settings.isPrivate ? 'Private' : 'Public',
     getRoomGameMode(room) === 'words' ? `${room.settings.codeLength} letters` : `${room.settings.codeLength} digits`,
@@ -40,32 +43,57 @@ export function WaitingRoomPage({
 
   return (
     <section className="mx-auto grid h-full w-full max-w-4xl grid-rows-[auto_1fr_auto] gap-3 overflow-hidden">
-      <article className="glass-panel-strong rounded-3xl p-4">
-        <h2 className="text-xl font-bold text-white">{room.roomName}</h2>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {roomTags.map((tag) => (
-            <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
-              {tag}
-            </span>
-          ))}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={onLeaveRoom}
-            className="rounded-xl border border-rose-300/25 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/15"
-          >
-            Leave room
-          </button>
-          {canDeleteRoom && (
+      <article className="glass-panel-strong rounded-3xl p-4 z-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-bold text-white">{room.roomName}</h2>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {roomTags.map((tag) => (
+                <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
-              onClick={onDeleteRoom}
-              className="rounded-xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-3 py-2 text-xs font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
+              onClick={() => setShowMenu((open) => !open)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg text-slate-100 shadow-sm transition hover:bg-white/10"
+              aria-label="Room actions"
+              aria-expanded={showMenu}
             >
-              Delete room
+              ⚙
             </button>
-          )}
+
+            {showMenu && (
+              <div className="glass-panel-strong absolute right-0 top-12 z-20 w-44 rounded-xl p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    onLeaveRoom()
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
+                >
+                  Leave room
+                </button>
+                {canDeleteRoom && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false)
+                      onDeleteRoom()
+                    }}
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/15"
+                  >
+                    Delete room
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </article>
 

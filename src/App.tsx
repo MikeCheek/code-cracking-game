@@ -104,8 +104,7 @@ function App() {
   const [claimedBulls, setClaimedBulls] = useState(0)
   const [claimedCows, setClaimedCows] = useState(0)
 
-  const [showSettingsPanel, setShowSettingsPanel] = useState(false)
-  const [showRulesPanel, setShowRulesPanel] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState<'rules' | 'settings' | null>(null)
   const [audioSettings, setAudioSettings] = useState<AudioSettings>(initialAudioSettings)
   const lastHandledHistoryIdRef = useRef<string | null>(null)
   const lastSeenRpsRoundRef = useRef<number | null>(null)
@@ -423,42 +422,6 @@ function App() {
   useEffect(() => {
     setSecretLocked(isCurrentSecretLocked)
   }, [isCurrentSecretLocked])
-
-  const headerMeta = useMemo(() => {
-    if (location.pathname === '/welcome') {
-      return {
-        title: 'Welcome',
-      }
-    }
-
-    if (location.pathname === '/rooms') {
-      return {
-        title: 'Create Or Join Room',
-      }
-    }
-
-    if (location.pathname.endsWith('/waiting')) {
-      return {
-        title: 'Waiting Room',
-      }
-    }
-
-    if (location.pathname.endsWith('/results')) {
-      return {
-        title: 'Match Summary',
-      }
-    }
-
-    if (location.pathname.endsWith('/watch')) {
-      return {
-        title: 'Spectator View',
-      }
-    }
-
-    return {
-      title: 'Live Match',
-    }
-  }, [location.pathname])
 
   const persistUser = (): UserProfile | null => {
     if (!username.trim()) {
@@ -861,6 +824,7 @@ function App() {
     if (!user || !lastLeftRoomId) return
     try {
       await joinRoom(lastLeftRoomId, user, '')
+      setLastLeftRoomId(null)
       toast.success('Rejoined match!')
       playSuccess()
       navigate(`/room/${lastLeftRoomId}/play`)
@@ -957,8 +921,7 @@ function App() {
     setClaimedCows(0)
     setSelectedGameMode(DEFAULT_GAME_MODE)
     setSelectedWordLanguage(DEFAULT_WORD_LANGUAGE)
-    setShowSettingsPanel(false)
-    setShowRulesPanel(false)
+    setShowSettingsModal(null)
     setShowUserMenu(false)
     setHotseatGuestProfile(null)
     setHotseatRevealedPlayerId(null)
@@ -1057,60 +1020,7 @@ function App() {
         }}
       </Toaster>
 
-      <div className="mx-auto flex h-full max-w-6xl flex-col">
-        <header className={`glass-panel-strong relative z-1 mb-3 rounded-3xl ${isWelcomeRoute ? 'p-4' : 'p-3 sm:p-4'}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-base lg:text-xl font-semibold uppercase tracking-[0.2em] text-cyan-300">{headerMeta.title}</p>
-              {/* <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Code Cracking Game</p> */}
-            </div>
-
-            {!isWelcomeRoute && user && (
-              <div ref={userMenuRef} className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowUserMenu((open) => !open)}
-                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition hover:bg-white/10"
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-base">{user.avatar}</span>
-                  <span className="max-w-[120px] truncate">{user.username}</span>
-                </button>
-
-                {showUserMenu && (
-                  <div className="glass-panel-strong absolute right-0 top-10 z-[888] w-44 rounded-xl p-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        navigate('/welcome')
-                      }}
-                      className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-                    >
-                      Edit Profile
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        navigate('/rooms')
-                      }}
-                      className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-                    >
-                      Games Page
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onLogout}
-                      className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
-                    >
-                      Log Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </header>
+      <div className="mx-auto flex h-full max-w-6xl flex-col pt-24">
 
         {inRoomsRoute && lastLeftRoomId && (
           <section className="mb-4 rounded-2xl border border-amber-300/25 bg-amber-300/10 p-4 shadow-md backdrop-blur">
@@ -1390,135 +1300,203 @@ function App() {
         />
       </a>
 
-      <button
-        type="button"
-        onClick={() => setShowRulesPanel((open) => !open)}
-        className="fixed bottom-16 right-4 z-40 rounded-full border border-white/20 bg-slate-900/85 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-xl backdrop-blur transition hover:bg-slate-900 sm:bottom-[88px] sm:right-5"
-      >
-        Rules
-      </button>
+      {!isWelcomeRoute && user && (
+        <div ref={userMenuRef}>
+          <button
+            type="button"
+            onClick={() => setShowUserMenu((open) => !open)}
+            className="fixed top-4 right-4 z-40 flex items-center gap-3 rounded-full border border-white/20 bg-slate-900/85 px-4 py-3 text-sm font-bold text-slate-100 shadow-xl backdrop-blur transition hover:bg-slate-900 sm:top-5 sm:right-5"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-300/10 text-base">{user.avatar}</span>
+            <span className="max-w-[120px] truncate hidden sm:inline">{user.username}</span>
+          </button>
 
-      <button
-        type="button"
-        onClick={() => setShowSettingsPanel((open) => !open)}
-        className="fixed bottom-4 right-4 z-40 rounded-full border border-white/20 bg-slate-900/85 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-xl backdrop-blur transition hover:bg-slate-900 sm:bottom-5 sm:right-5"
-      >
-        Settings
-      </button>
-
-      {showRulesPanel && (
-        <section className="glass-panel-strong fixed bottom-28 right-3 z-50 w-[min(95vw,360px)] rounded-2xl p-4 sm:bottom-36 sm:right-5">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-extrabold text-white">Rules</h3>
-            <button
-              type="button"
-              onClick={() => setShowRulesPanel(false)}
-              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-            >
-              Close
-            </button>
-          </div>
-          <div className="mt-3 space-y-2 text-sm text-slate-200">
-            <p>Guess the opponent code.</p>
-            <p>Strikes: right digit in right position.</p>
-            <p>Balls: right digit in wrong position.</p>
-            <p>Too many lies lose the game.</p>
-          </div>
-        </section>
+          {showUserMenu && (
+            <div className="glass-panel-strong fixed top-20 right-3 z-50 w-[min(95vw,360px)] rounded-xl p-2 sm:top-24 sm:right-5 max-h-[70vh] overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUserMenu(false)
+                  navigate('/welcome')
+                }}
+                className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+              >
+                Edit Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUserMenu(false)
+                  navigate('/rooms')
+                }}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+              >
+                Games Page
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUserMenu(false)
+                  setShowSettingsModal('settings')
+                }}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+              >
+                Settings
+              </button>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-200 transition hover:bg-rose-400/15"
+              >
+                Log Out
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
-      {showSettingsPanel && (
-        <section className="glass-panel-strong fixed bottom-16 right-3 z-50 w-[min(95vw,360px)] rounded-2xl p-4 sm:bottom-20 sm:right-5">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-extrabold text-white">Quick Settings</h3>
-            <button
-              type="button"
-              onClick={() => setShowSettingsPanel(false)}
-              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-            >
-              Close
-            </button>
-          </div>
-
-          <div className="mt-4">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Theme</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {UI_THEME_OPTIONS.map((item) => (
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
+          <div className="glass-panel-strong w-full max-w-2xl max-h-[85vh] rounded-3xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
+              <div className="flex gap-2">
                 <button
-                  key={item.id}
                   type="button"
-                  onClick={() => setUiTheme(item.id)}
-                  className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                    audioSettings.uiTheme === item.id
-                      ? 'border-fuchsia-300/40 bg-fuchsia-300/20 text-white'
-                      : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                  onClick={() => setShowSettingsModal('rules')}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    showSettingsModal === 'rules'
+                      ? 'bg-fuchsia-300/20 border border-fuchsia-300/40 text-white'
+                      : 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
                   }`}
                 >
-                  {item.label}
+                  Rules
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal('settings')}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    showSettingsModal === 'settings'
+                      ? 'bg-fuchsia-300/20 border border-fuchsia-300/40 text-white'
+                      : 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                  }`}
+                >
+                  Settings
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(null)}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {showSettingsModal === 'rules' && (
+                <div className="space-y-3 text-sm text-slate-200">
+                  <h3 className="text-lg font-bold text-white">Game Rules</h3>
+                  <p>Guess the opponent code.</p>
+                  <p><strong>Strikes:</strong> right digit in right position.</p>
+                  <p><strong>Balls:</strong> right digit in wrong position.</p>
+                  <p><strong>Lies:</strong> Too many lies lose the game.</p>
+                </div>
+              )}
+
+              {showSettingsModal === 'settings' && (
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-4">Settings</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-2">Theme</p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {UI_THEME_OPTIONS.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setUiTheme(item.id)}
+                            className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                              audioSettings.uiTheme === item.id
+                                ? 'border-fuchsia-300/40 bg-fuchsia-300/20 text-white'
+                                : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center justify-between text-sm font-semibold text-slate-100 mb-2">
+                        <span>Music theme</span>
+                        <select
+                          value={audioSettings.musicTheme}
+                          onChange={(event) => {
+                            setMusicTheme(event.target.value === 'calm' ? 'calm' : 'arcade')
+                            void ensureAudioReady()
+                          }}
+                          className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+                        >
+                          <option value="arcade">Arcade</option>
+                          <option value="calm">Calm</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 mb-2">
+                        <span>Background music</span>
+                        <input
+                          type="checkbox"
+                          checked={audioSettings.musicEnabled}
+                          onChange={(event) => {
+                            setMusicEnabled(event.target.checked)
+                            void ensureAudioReady()
+                          }}
+                        />
+                      </label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={Math.round(audioSettings.musicVolume * 100)}
+                        onChange={(event) => setMusicVolume(Number(event.target.value) / 100)}
+                        className="w-full"
+                      />
+                      <p className="mt-1 text-xs text-slate-300">Volume: {Math.round(audioSettings.musicVolume * 100)}%</p>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 mb-2">
+                        <span>Sound effects</span>
+                        <input
+                          type="checkbox"
+                          checked={audioSettings.sfxEnabled}
+                          onChange={(event) => {
+                            setSfxEnabled(event.target.checked)
+                            void ensureAudioReady()
+                          }}
+                        />
+                      </label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={Math.round(audioSettings.sfxVolume * 100)}
+                        onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
+                        className="w-full"
+                      />
+                      <p className="mt-1 text-xs text-slate-300">Volume: {Math.round(audioSettings.sfxVolume * 100)}%</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          <label className="mt-4 flex items-center justify-between text-sm font-semibold text-slate-100">
-            <span>Music theme</span>
-            <select
-              value={audioSettings.musicTheme}
-              onChange={(event) => {
-                setMusicTheme(event.target.value === 'calm' ? 'calm' : 'arcade')
-                void ensureAudioReady()
-              }}
-              className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-sm text-slate-100"
-            >
-              <option value="arcade">Arcade</option>
-              <option value="calm">Calm</option>
-            </select>
-          </label>
-
-          <label className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100">
-            <span>Background music</span>
-            <input
-              type="checkbox"
-              checked={audioSettings.musicEnabled}
-              onChange={(event) => {
-                setMusicEnabled(event.target.checked)
-                void ensureAudioReady()
-              }}
-            />
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(audioSettings.musicVolume * 100)}
-            onChange={(event) => setMusicVolume(Number(event.target.value) / 100)}
-            className="mt-2 w-full"
-          />
-          <p className="mt-1 text-xs text-slate-300">Music volume: {Math.round(audioSettings.musicVolume * 100)}%</p>
-
-          <label className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100">
-            <span>Sound effects</span>
-            <input
-              type="checkbox"
-              checked={audioSettings.sfxEnabled}
-              onChange={(event) => {
-                setSfxEnabled(event.target.checked)
-                void ensureAudioReady()
-              }}
-            />
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(audioSettings.sfxVolume * 100)}
-            onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
-            className="mt-2 w-full"
-          />
-          <p className="mt-1 text-xs text-slate-300">SFX volume: {Math.round(audioSettings.sfxVolume * 100)}%</p>
-        </section>
+        </div>
       )}
-
       {showLeaveConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xl">
           <div className="glass-panel-strong w-full max-w-md rounded-3xl p-5">
