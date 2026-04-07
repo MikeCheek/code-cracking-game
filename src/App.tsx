@@ -1025,6 +1025,14 @@ function App() {
 
   return (
     <div className={`theme-${audioSettings.uiTheme} min-h-dvh bg-orchid-pattern px-3 py-3 text-slate-100 app-noise sm:px-4 sm:py-4`}>
+      <div className="fixed top-4 left-4 z-[1300] sm:top-5 sm:left-5">
+        <img
+          src="/codecracking.png"
+          alt="Code Cracking logo"
+          className="h-12 w-12 rounded-xl border border-white/20 object-cover shadow-[0_10px_28px_rgba(0,0,0,0.45)] sm:h-14 sm:w-14"
+        />
+      </div>
+
       <Toaster
         position="top-center"
         toastOptions={{
