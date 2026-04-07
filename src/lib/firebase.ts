@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app'
+import { getAuth } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
 
 const config = {
@@ -22,4 +23,6 @@ if (missing.length > 0) {
 
 const app = initializeApp(config)
 
+export const auth = getAuth(app)
 export const db = getDatabase(app)
+export { app }

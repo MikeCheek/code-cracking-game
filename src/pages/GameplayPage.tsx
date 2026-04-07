@@ -9,7 +9,28 @@ const RPS_ITEMS: Array<{ value: RpsChoice; icon: string; label: string }> = [
   { value: 'scissors', icon: '✂️', label: 'Scissors' },
 ]
 
-const QUICK_EMOTES = ['😍', '🧐', '😈', '🕒', '🔥', '😂']
+const QUICK_EMOTES = [
+  '❤️',
+  '😍',
+  '🧐',
+  '😈',
+  '🕒',
+  '🔥',
+  '😂',
+  '😤',
+  '🤯',
+  '🥶',
+  '😎',
+  '👏',
+  '💀',
+  '👀',
+  '🤝',
+  '🙃',
+  '😅',
+  '😭',
+  '💥',
+  '🫡',
+]
 
 const DIGIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
 const LETTER_KEYS = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm'] as const
@@ -17,11 +38,65 @@ type DigitKind = 'strike' | 'ball' | 'miss' | 'code'
 type FlyingEmote = {
   id: string
   value: string
-  dx: number
-  dy: number
-  rotate: number
+  originX: number
+  originY: number
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  x3: number
+  y3: number
+  x4: number
+  y4: number
+  rotate1: number
+  rotate2: number
+  rotate3: number
+  rotate4: number
+  scale1: number
+  scale2: number
+  scale3: number
+  scale4: number
   durationMs: number
 }
+
+type EmotePathTemplate = {
+  points: Array<{ x: number; y: number }>
+}
+
+const EMOTE_PATH_TEMPLATES: EmotePathTemplate[] = [
+  {
+    points: [
+      { x: 58, y: -72 },
+      { x: 132, y: -166 },
+      { x: 220, y: -254 },
+      { x: 304, y: -338 },
+    ],
+  },
+  {
+    points: [
+      { x: 44, y: -68 },
+      { x: 170, y: -142 },
+      { x: 132, y: -254 },
+      { x: 268, y: -334 },
+    ],
+  },
+  {
+    points: [
+      { x: 72, y: -56 },
+      { x: 96, y: -198 },
+      { x: 248, y: -212 },
+      { x: 214, y: -352 },
+    ],
+  },
+  {
+    points: [
+      { x: 50, y: -86 },
+      { x: 186, y: -126 },
+      { x: 208, y: -282 },
+      { x: 326, y: -310 },
+    ],
+  },
+]
 
 type GameplayPageProps = {
   room: RoomData
@@ -96,10 +171,16 @@ export function GameplayPage({
 }: GameplayPageProps) {
   const [showGameMenu, setShowGameMenu] = useState(false)
   const [showEmotePicker, setShowEmotePicker] = useState(false)
+  const [selectedQuickEmote, setSelectedQuickEmote] = useState(QUICK_EMOTES[0])
+  const [showAllGuesses, setShowAllGuesses] = useState(false)
   const [flyingEmotes, setFlyingEmotes] = useState<FlyingEmote[]>([])
   const [rpsNow, setRpsNow] = useState(0)
   const gameMenuRef = useRef<HTMLDivElement | null>(null)
   const latestQuickEmoteAtRef = useRef<Record<string, number>>({})
+  const emoteMainHoldTimeoutRef = useRef<number | null>(null)
+  const emoteMainHoldIntervalRef = useRef<number | null>(null)
+  const emoteMainHoldPointerIdRef = useRef<number | null>(null)
+  const emoteMainLongPressActiveRef = useRef(false)
   const isWordGame = getRoomGameMode(room) === 'words'
   const wordLanguageLabel = WORD_LANGUAGE_LABELS[getRoomWordLanguage(room)]
   const isMyTurnCard = room.currentTurnPlayerId && myProfile?.id === room.currentTurnPlayerId
@@ -130,18 +211,107 @@ export function GameplayPage({
     latestQuickEmoteAtRef.current = {}
   }, [room.id])
 
+  const stopMainEmoteHold = () => {
+    if (emoteMainHoldTimeoutRef.current !== null) {
+      clearTimeout(emoteMainHoldTimeoutRef.current)
+      emoteMainHoldTimeoutRef.current = null
+    }
+    if (emoteMainHoldIntervalRef.current !== null) {
+      clearInterval(emoteMainHoldIntervalRef.current)
+      emoteMainHoldIntervalRef.current = null
+    }
+    emoteMainHoldPointerIdRef.current = null
+    emoteMainLongPressActiveRef.current = false
+  }
+
+  useEffect(() => stopMainEmoteHold, [])
+
+  const sendQuickEmote = (emote: string) => {
+    setSelectedQuickEmote(emote)
+    onSendQuickEmote(emote)
+  }
+
+  const onMainEmotePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return
+
+    stopMainEmoteHold()
+    emoteMainHoldPointerIdRef.current = event.pointerId
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    emoteMainHoldTimeoutRef.current = window.setTimeout(() => {
+      emoteMainLongPressActiveRef.current = true
+      sendQuickEmote(selectedQuickEmote)
+      emoteMainHoldIntervalRef.current = window.setInterval(() => {
+        sendQuickEmote(selectedQuickEmote)
+      }, 180)
+    }, 280)
+  }
+
+  const onMainEmotePointerEnd = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (emoteMainHoldPointerIdRef.current !== event.pointerId) return
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    const wasLongPress = emoteMainLongPressActiveRef.current
+    stopMainEmoteHold()
+    if (!wasLongPress) {
+      setShowEmotePicker((open) => !open)
+    }
+  }
+
   const createRandomFlight = (emoteId: string, value: string): FlyingEmote => {
-    const dxBase = 120 + Math.random() * 200
-    const dyBase = -(210 + Math.random() * 150)
-    const rotateBase = (Math.random() < 0.5 ? -1 : 1) * (10 + Math.random() * 20)
-    const durationMs = 1850 + Math.round(Math.random() * 450)
+    const isSmallViewport = typeof window !== 'undefined' ? window.innerWidth < 640 : true
+    const baseLeftInset = isSmallViewport ? 16 : 24
+    const baseBottomInset = isSmallViewport ? 80 : 96
+    const anchorX = baseLeftInset + 28
+    const anchorY = baseBottomInset + 28
+    const maxX = Math.max(60, window.innerWidth - anchorX - 20)
+    const maxUp = Math.max(100, window.innerHeight - anchorY - 20)
+
+    const template = EMOTE_PATH_TEMPLATES[Math.floor(Math.random() * EMOTE_PATH_TEMPLATES.length)]
+    const scale = 0.85 + Math.random() * 0.4
+    const jitter = 20
+
+    const clampX = (valueX: number) => Math.max(-anchorX + 8, Math.min(maxX, valueX))
+    const clampY = (valueY: number) => Math.max(-maxUp, Math.min(-14, valueY))
+
+    const toPoint = (index: number) => {
+      const base = template.points[index]
+      const x = clampX(base.x * scale + (Math.random() * 2 - 1) * jitter)
+      const y = clampY(base.y * scale + (Math.random() * 2 - 1) * jitter)
+      return { x, y }
+    }
+
+    const p1 = toPoint(0)
+    const p2 = toPoint(1)
+    const p3 = toPoint(2)
+    const p4 = toPoint(3)
+
+    const swing = Math.random() < 0.5 ? -1 : 1
+    const durationMs = 2050 + Math.round(Math.random() * 850)
 
     return {
       id: emoteId,
       value,
-      dx: dxBase,
-      dy: dyBase,
-      rotate: rotateBase,
+      originX: 28,
+      originY: 28,
+      x1: p1.x,
+      y1: p1.y,
+      x2: p2.x,
+      y2: p2.y,
+      x3: p3.x,
+      y3: p3.y,
+      x4: p4.x,
+      y4: p4.y,
+      rotate1: swing * (6 + Math.random() * 16),
+      rotate2: -swing * (16 + Math.random() * 24),
+      rotate3: swing * (10 + Math.random() * 26),
+      rotate4: -swing * (8 + Math.random() * 20),
+      scale1: 0.9 + Math.random() * 0.18,
+      scale2: 0.95 + Math.random() * 0.24,
+      scale3: 1.03 + Math.random() * 0.24,
+      scale4: 0.88 + Math.random() * 0.28,
       durationMs,
     }
   }
@@ -207,6 +377,10 @@ export function GameplayPage({
   }
 
   const pendingKinds = getDigitKinds(room.pendingGuess?.guess ?? '', claimedBulls, claimedCows, mySecret)
+  const visibleGuesses = useMemo(() => {
+    if (showAllGuesses || !myProfile?.id) return sortedHistory
+    return sortedHistory.filter((item) => item.fromPlayerId === myProfile.id)
+  }, [myProfile?.id, showAllGuesses, sortedHistory])
   const quickEmoteEntries = useMemo(
     () => (room.quickEmotes ? Object.entries(room.quickEmotes) : []),
     [room.quickEmotes],
@@ -235,7 +409,7 @@ export function GameplayPage({
 
       const removeTimeout = window.setTimeout(() => {
         setFlyingEmotes((current) => current.filter((entry) => entry.id !== emoteId))
-      }, 2600)
+      }, 3400)
       removeTimers.push(removeTimeout)
     }
 
@@ -302,9 +476,24 @@ export function GameplayPage({
               key={entry.id}
               className="quick-emote-fly"
               style={{
-                ['--emote-dx' as string]: `${entry.dx}px`,
-                ['--emote-dy' as string]: `${entry.dy}px`,
-                ['--emote-rotate' as string]: `${entry.rotate}deg`,
+                ['--emote-origin-x' as string]: `${entry.originX}px`,
+                ['--emote-origin-y' as string]: `${entry.originY}px`,
+                ['--emote-x1' as string]: `${entry.x1}px`,
+                ['--emote-y1' as string]: `${entry.y1}px`,
+                ['--emote-x2' as string]: `${entry.x2}px`,
+                ['--emote-y2' as string]: `${entry.y2}px`,
+                ['--emote-x3' as string]: `${entry.x3}px`,
+                ['--emote-y3' as string]: `${entry.y3}px`,
+                ['--emote-x4' as string]: `${entry.x4}px`,
+                ['--emote-y4' as string]: `${entry.y4}px`,
+                ['--emote-rotate1' as string]: `${entry.rotate1}deg`,
+                ['--emote-rotate2' as string]: `${entry.rotate2}deg`,
+                ['--emote-rotate3' as string]: `${entry.rotate3}deg`,
+                ['--emote-rotate4' as string]: `${entry.rotate4}deg`,
+                ['--emote-scale1' as string]: `${entry.scale1}`,
+                ['--emote-scale2' as string]: `${entry.scale2}`,
+                ['--emote-scale3' as string]: `${entry.scale3}`,
+                ['--emote-scale4' as string]: `${entry.scale4}`,
                 ['--emote-duration' as string]: `${entry.durationMs}ms`,
               }}
             >
@@ -315,30 +504,35 @@ export function GameplayPage({
 
         <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
           {showEmotePicker && (
-            <div className="glass-panel-strong flex max-w-[15rem] flex-wrap justify-start gap-2 rounded-2xl border border-white/10 p-2">
+            <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-white/10 p-2 max-h-44">
+              <div className="grid grid-cols-5 gap-2">
               {QUICK_EMOTES.map((emote) => (
                 <button
                   key={emote}
                   type="button"
                   onClick={() => {
-                    onSendQuickEmote(emote)
+                    sendQuickEmote(emote)
                     setShowEmotePicker(false)
                   }}
-                  className="h-11 w-11 rounded-xl border border-white/10 bg-white/5 text-2xl leading-none transition hover:scale-105 hover:bg-white/10"
+                  className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-xl leading-none transition hover:scale-105 hover:bg-white/10"
                 >
                   {emote}
                 </button>
               ))}
+              </div>
             </div>
           )}
           <button
             type="button"
-            onClick={() => setShowEmotePicker((open) => !open)}
+            onPointerDown={onMainEmotePointerDown}
+            onPointerUp={onMainEmotePointerEnd}
+            onPointerCancel={onMainEmotePointerEnd}
+            onPointerLeave={onMainEmotePointerEnd}
             className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
             aria-label="Toggle quick emotes"
             aria-expanded={showEmotePicker}
           >
-            😍
+            {selectedQuickEmote}
           </button>
         </div>
       </section>
@@ -732,12 +926,40 @@ export function GameplayPage({
         </div>
 
         <div className="glass-panel rounded-3xl p-3">
-          <p className="mb-2 text-sm font-semibold text-white">Guesses</p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-white">Guesses</p>
+            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
+              <button
+                type="button"
+                onClick={() => setShowAllGuesses(false)}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                  !showAllGuesses
+                    ? 'bg-cyan-300/25 text-cyan-100'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
+                }`}
+              >
+                My guesses
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAllGuesses(true)}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                  showAllGuesses
+                    ? 'bg-cyan-300/25 text-cyan-100'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
+                }`}
+              >
+                All players
+              </button>
+            </div>
+          </div>
           {sortedHistory.length === 0 ? (
             <p className="text-sm text-slate-300">No guesses yet.</p>
+          ) : visibleGuesses.length === 0 ? (
+            <p className="text-sm text-slate-300">No guesses from your side yet.</p>
           ) : (
             <div className="space-y-2">
-              {sortedHistory.map((item) => {
+              {visibleGuesses.map((item) => {
                 const kinds = getDigitKinds(
                   item.guess,
                   item.actualBulls,
@@ -830,9 +1052,24 @@ export function GameplayPage({
             key={entry.id}
             className="quick-emote-fly"
             style={{
-              ['--emote-dx' as string]: `${entry.dx}px`,
-              ['--emote-dy' as string]: `${entry.dy}px`,
-              ['--emote-rotate' as string]: `${entry.rotate}deg`,
+              ['--emote-origin-x' as string]: `${entry.originX}px`,
+              ['--emote-origin-y' as string]: `${entry.originY}px`,
+              ['--emote-x1' as string]: `${entry.x1}px`,
+              ['--emote-y1' as string]: `${entry.y1}px`,
+              ['--emote-x2' as string]: `${entry.x2}px`,
+              ['--emote-y2' as string]: `${entry.y2}px`,
+              ['--emote-x3' as string]: `${entry.x3}px`,
+              ['--emote-y3' as string]: `${entry.y3}px`,
+              ['--emote-x4' as string]: `${entry.x4}px`,
+              ['--emote-y4' as string]: `${entry.y4}px`,
+              ['--emote-rotate1' as string]: `${entry.rotate1}deg`,
+              ['--emote-rotate2' as string]: `${entry.rotate2}deg`,
+              ['--emote-rotate3' as string]: `${entry.rotate3}deg`,
+              ['--emote-rotate4' as string]: `${entry.rotate4}deg`,
+              ['--emote-scale1' as string]: `${entry.scale1}`,
+              ['--emote-scale2' as string]: `${entry.scale2}`,
+              ['--emote-scale3' as string]: `${entry.scale3}`,
+              ['--emote-scale4' as string]: `${entry.scale4}`,
               ['--emote-duration' as string]: `${entry.durationMs}ms`,
             }}
           >
@@ -843,30 +1080,35 @@ export function GameplayPage({
 
       <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
         {showEmotePicker && (
-          <div className="glass-panel-strong flex max-w-[15rem] flex-wrap justify-start gap-2 rounded-2xl border border-white/10 p-2">
+          <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-white/10 p-2 max-h-44">
+            <div className="grid grid-cols-5 gap-2">
             {QUICK_EMOTES.map((emote) => (
               <button
                 key={emote}
                 type="button"
                 onClick={() => {
-                  onSendQuickEmote(emote)
+                  sendQuickEmote(emote)
                   setShowEmotePicker(false)
                 }}
-                className="h-11 w-11 rounded-xl border border-white/10 bg-white/5 text-2xl leading-none transition hover:scale-105 hover:bg-white/10"
+                className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-xl leading-none transition hover:scale-105 hover:bg-white/10"
               >
                 {emote}
               </button>
             ))}
+            </div>
           </div>
         )}
         <button
           type="button"
-          onClick={() => setShowEmotePicker((open) => !open)}
+          onPointerDown={onMainEmotePointerDown}
+          onPointerUp={onMainEmotePointerEnd}
+          onPointerCancel={onMainEmotePointerEnd}
+          onPointerLeave={onMainEmotePointerEnd}
           className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/35 bg-gradient-to-br from-cyan-300 via-sky-300 to-fuchsia-300 text-2xl shadow-[0_14px_34px_rgba(34,211,238,0.38)] transition hover:scale-105"
           aria-label="Toggle quick emotes"
           aria-expanded={showEmotePicker}
         >
-          😍
+          {selectedQuickEmote}
         </button>
       </div>
 

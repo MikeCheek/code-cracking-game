@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { GoogleAuthProvider, onAuthStateChanged, signInAnonymously, signInWithPopup, signOut } from 'firebase/auth'
 import toast, { Toaster, ToastBar } from 'react-hot-toast'
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { DEFAULT_CODE_LENGTH, DEFAULT_GAME_MODE, DEFAULT_WORD_LANGUAGE, MAX_WORD_CODE_LENGTH } from './constants'
@@ -16,6 +17,7 @@ import {
   lockSecret,
   finalizeRpsRound,
   sendQuickEmote,
+  subscribePastGames,
   votePlayAgain,
   unlockSecret,
   submitGuess,
@@ -28,10 +30,12 @@ import {
   shareInviteViaTelegram,
   shareInviteViaWhatsApp,
 } from './lib/share'
+import { auth } from './lib/firebase'
 import { configureAudio, ensureAudioReady, playAlert, playClick, playLie, playSuccess } from './lib/sfx'
 import { clearUser, hasAudioConsent, loadAudioSettings, loadUser, saveAudioSettings, saveUser, setAudioConsent } from './lib/storage'
-import { generateRandomAvatar } from './utils/profile'
+import { generateRandomAvatar, generateRandomUsername } from './utils/profile'
 import { GameplayPage } from './pages/GameplayPage'
+import { HistoryPage } from './pages/HistoryPage'
 import { RoomsPage } from './pages/RoomsPage'
 import { ResultsPage } from './pages/ResultsPage'
 import { WaitingRoomPage } from './pages/WaitingRoomPage'
@@ -39,11 +43,12 @@ import { WelcomePage } from './pages/WelcomePage'
 import { generateRoomName } from './utils/roomName'
 import { getRoomGameMode } from './utils/gameMode'
 import { normalizeWordInput } from './lib/wordValidation'
-import type { AudioSettings, GameMode, LobbyRoomSummary, RoomData, RpsChoice, UserProfile, WordLanguage } from './types'
+import type { AudioSettings, GameMode, LobbyRoomSummary, PastGameSummary, RoomData, RpsChoice, UserProfile, WordLanguage } from './types'
 
 const initialTelegramUser = typeof window !== 'undefined' ? getTelegramUserProfile() : null
 const initialStoredUser = initialTelegramUser ?? loadUser()
 const initialAudioSettings = loadAudioSettings()
+const googleAuthProvider = new GoogleAuthProvider()
 
 const UI_THEME_OPTIONS: Array<{ id: AudioSettings['uiTheme']; label: string }> = [
   { id: 'neon-pink', label: 'Neon Pink' },
@@ -81,8 +86,12 @@ function App() {
   const [user, setUser] = useState<UserProfile | null>(initialStoredUser)
   const [username, setUsername] = useState(initialStoredUser?.username ?? '')
   const [avatar, setAvatar] = useState(initialStoredUser?.avatar ?? generateRandomAvatar())
+  const [isAuthInitializing, setIsAuthInitializing] = useState(true)
+  const [isAuthBusy, setIsAuthBusy] = useState(false)
+  const [isAnonymousSession, setIsAnonymousSession] = useState(true)
 
   const [rooms, setRooms] = useState<LobbyRoomSummary[]>([])
+  const [pastGames, setPastGames] = useState<PastGameSummary[]>([])
   const [room, setRoom] = useState<RoomData | null>(null)
 
   const [codeLength, setCodeLength] = useState<number>(DEFAULT_CODE_LENGTH)
@@ -126,6 +135,7 @@ function App() {
 
   const signedInUserId = user?.id ?? null
   const inRoomsRoute = location.pathname === '/rooms'
+  const inHistoryRoute = location.pathname === '/history'
   const isWelcomeRoute = location.pathname === '/welcome'
 
   useEffect(() => {
@@ -205,6 +215,43 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
+        setIsAnonymousSession(true)
+        void signInAnonymously(auth)
+          .catch((error: unknown) => {
+            toast.error(error instanceof Error ? error.message : 'Anonymous login failed')
+          })
+          .finally(() => {
+            setIsAuthInitializing(false)
+          })
+        return
+      }
+
+      setIsAnonymousSession(firebaseUser.isAnonymous)
+
+      const stored = loadUser()
+      const isSameIdentity = stored?.id === firebaseUser.uid
+      const preferredUsername = isSameIdentity
+        ? stored?.username?.trim()
+        : firebaseUser.displayName?.trim() || stored?.username?.trim()
+      const nextUser: UserProfile = {
+        id: firebaseUser.uid,
+        username: (preferredUsername || generateRandomUsername()).slice(0, 24),
+        avatar: isSameIdentity ? (stored?.avatar || generateRandomAvatar()) : generateRandomAvatar(),
+      }
+
+      saveUser(nextUser)
+      setUser(nextUser)
+      setUsername(nextUser.username)
+      setAvatar(nextUser.avatar)
+      setIsAuthInitializing(false)
+    })
+
+    return unsubscribe
+  }, [])
+
   // Clear RPS choice, secret lock, and code inputs when hotseat player changes (fixes privacy in hotseat mode)
   useEffect(() => {
     if (!isHotseatMode || !hotseatRevealedPlayerId) return
@@ -239,6 +286,19 @@ function App() {
 
     return unsub
   }, [user, inRoomsRoute])
+
+  useEffect(() => {
+    if (!user || isAnonymousSession || !inHistoryRoute) {
+      setPastGames([])
+      return
+    }
+
+    const unsub = subscribePastGames(user.id, (list) => {
+      setPastGames(list)
+    })
+
+    return unsub
+  }, [inHistoryRoute, isAnonymousSession, user])
 
   useEffect(() => {
     if (!routeRoomId) return
@@ -429,8 +489,14 @@ function App() {
       return null
     }
 
+    const authUserId = auth.currentUser?.uid
+    if (!authUserId) {
+      toast.error('Still connecting your session. Try again in a moment.')
+      return null
+    }
+
     const nextUser: UserProfile = {
-      id: user?.id ?? crypto.randomUUID(),
+      id: authUserId,
       username: username.trim().slice(0, 24),
       avatar,
     }
@@ -461,6 +527,21 @@ function App() {
     toast.success('Entered with saved profile.')
     playSuccess()
     navigate('/rooms')
+  }
+
+  const onCreateAccountOrLogin = async () => {
+    setIsAuthBusy(true)
+    try {
+      googleAuthProvider.setCustomParameters({ prompt: 'select_account' })
+      await signInWithPopup(auth, googleAuthProvider)
+      toast.success('Signed in with Google.')
+      playSuccess()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Google sign-in failed')
+      playAlert()
+    } finally {
+      setIsAuthBusy(false)
+    }
   }
 
   const onCreateRoom = async (): Promise<boolean> => {
@@ -522,6 +603,10 @@ function App() {
   }, [navigate, user])
 
   const onOpenPastGameResults = useCallback((targetRoomId: string) => {
+    navigate(`/room/${targetRoomId}/results?past=1`)
+  }, [navigate])
+
+  const onOpenHistoryMatch = useCallback((targetRoomId: string) => {
     navigate(`/room/${targetRoomId}/results?past=1`)
   }, [navigate])
 
@@ -904,7 +989,8 @@ function App() {
     setGuessInput(digitsOnly)
   }
 
-  const onLogout = () => {
+  const onLogout = async () => {
+    setIsAuthBusy(true)
     clearUser()
     setUser(null)
     setUsername('')
@@ -925,8 +1011,15 @@ function App() {
     setShowUserMenu(false)
     setHotseatGuestProfile(null)
     setHotseatRevealedPlayerId(null)
-    toast.success('Logged out.')
-    navigate('/welcome')
+    try {
+      await signOut(auth)
+      toast.success('Logged out. Anonymous mode is active.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Logout failed')
+    } finally {
+      setIsAuthBusy(false)
+      navigate('/welcome')
+    }
   }
 
   return (
@@ -1022,6 +1115,12 @@ function App() {
 
       <div className="mx-auto flex h-full max-w-6xl flex-col pt-24">
 
+        {isAuthInitializing && (
+          <section className="mb-4 rounded-2xl border border-white/15 bg-slate-900/60 p-4 text-sm text-slate-200 backdrop-blur">
+            Initializing secure session...
+          </section>
+        )}
+
         {inRoomsRoute && lastLeftRoomId && (
           <section className="mb-4 rounded-2xl border border-amber-300/25 bg-amber-300/10 p-4 shadow-md backdrop-blur">
             <p className="text-sm font-semibold text-amber-100">You recently left an active match.</p>
@@ -1071,6 +1170,9 @@ function App() {
                 }}
                 onEnterLobby={onEnterLobby}
                 onUseSavedProfile={onUseSavedProfile}
+                onCreateAccountOrLogin={onCreateAccountOrLogin}
+                isAuthBusy={isAuthBusy}
+                isAnonymousSession={isAnonymousSession}
               />
             }
           />
@@ -1110,6 +1212,21 @@ function App() {
                   onWatchRoom={onWatchRoom}
                   onOpenPastGameResults={onOpenPastGameResults}
                 />
+              ) : (
+                <Navigate to="/welcome" replace />
+              )
+            }
+          />
+
+          <Route
+            path="/history"
+            element={
+              user ? (
+                isAnonymousSession ? (
+                  <Navigate to="/rooms" replace />
+                ) : (
+                  <HistoryPage games={pastGames} onOpenPastResult={onOpenHistoryMatch} />
+                )
               ) : (
                 <Navigate to="/welcome" replace />
               )
@@ -1333,6 +1450,18 @@ function App() {
               >
                 Games Page
               </button>
+              {!isAnonymousSession && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUserMenu(false)
+                    navigate('/history')
+                  }}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                >
+                  Match History
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -1346,6 +1475,7 @@ function App() {
               <button
                 type="button"
                 onClick={onLogout}
+                disabled={isAuthBusy}
                 className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-200 transition hover:bg-rose-400/15"
               >
                 Log Out

@@ -8,12 +8,15 @@ type WelcomePageProps = {
   username: string
   avatar: string
   isFirstVisit: boolean
+  isAuthBusy: boolean
+  isAnonymousSession: boolean
   onUsernameChange: (value: string) => void
   onAvatarChange: (value: string) => void
   onSetAudioEnabled: (enabled: boolean) => void
   onAudioConsentDone: () => void
   onEnterLobby: () => void
   onUseSavedProfile: () => void
+  onCreateAccountOrLogin: () => void
 }
 
 export function WelcomePage({
@@ -21,12 +24,15 @@ export function WelcomePage({
   username,
   avatar,
   isFirstVisit,
+  isAuthBusy,
+  isAnonymousSession,
   onUsernameChange,
   onAvatarChange,
   onSetAudioEnabled,
   onAudioConsentDone,
   onEnterLobby,
   onUseSavedProfile,
+  onCreateAccountOrLogin,
 }: WelcomePageProps) {
   const [consentShown, setConsentShown] = useState(!isFirstVisit)
   const [editingProfile, setEditingProfile] = useState(!user)
@@ -319,6 +325,19 @@ export function WelcomePage({
               >
                 Enter game
               </button>
+
+              {isAnonymousSession ? (
+                <button
+                  type="button"
+                  onClick={onCreateAccountOrLogin}
+                  disabled={isAuthBusy}
+                  className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isAuthBusy ? 'Opening Google login...' : 'Create an account / login'}
+                </button>
+              ) : (
+                <p className="text-center text-xs font-semibold text-emerald-200">Signed in with Google</p>
+              )}
             </div>
           )}
         </article>

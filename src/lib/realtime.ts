@@ -12,7 +12,7 @@ import { DEFAULT_WORD_LANGUAGE, MAX_PENALTIES } from '../constants'
 import { db } from './firebase'
 import { decideRpsWinner, evaluateGuess, isValidCombination } from '../utils/game'
 import { normalizeRoomName } from '../utils/roomName'
-import type { GuessRecord, LobbyRoomSummary, RoomData, RoomSettings, RpsChoice, UserProfile } from '../types'
+import type { GuessRecord, LobbyRoomSummary, PastGameSummary, RoomData, RoomSettings, RpsChoice, UserProfile } from '../types'
 import { isRealWord, normalizeWordInput } from './wordValidation'
 
 const roomsRef = ref(db, 'rooms')
@@ -102,8 +102,8 @@ export async function createRoom(
   password: string,
   roomName: string,
 ): Promise<string> {
-  // Keep only one room per host by deleting older rooms before creating a new one.
-  const existingByHost = await getHostRoomIds(user.id)
+  // Keep only one active room per host by deleting older active rooms before creating a new one.
+  const existingByHost = await getActiveHostRoomIds(user.id)
   await Promise.all(existingByHost.map((id) => set(roomRef(id), null)))
 
   const newRoom = push(roomsRef)
@@ -295,13 +295,77 @@ export function subscribeLobby(callback: (rooms: LobbyRoomSummary[]) => void): U
   })
 }
 
-async function getHostRoomIds(hostId: string): Promise<string[]> {
+export function subscribePastGames(userId: string, callback: (games: PastGameSummary[]) => void): Unsubscribe {
+  return onValue(roomsRef, (snapshot) => {
+    const value = snapshot.val() as Record<string, Omit<RoomData, 'id'>> | null
+    if (!value) {
+      callback([])
+      return
+    }
+
+    const list = Object.entries(value)
+      .map(([id, room]): PastGameSummary | null => {
+        if (room.status !== 'finished') return null
+
+        const isHost = room.hostId === userId
+        const isGuest = room.guestId === userId
+        if (!isHost && !isGuest) return null
+
+        const myRole = isHost ? 'host' : 'guest'
+        const opponentId = isHost ? room.guestId : room.hostId
+        const opponentName = opponentId ? (room.profiles[opponentId]?.username ?? 'Unknown player') : 'No opponent'
+
+        const guessHistory = Object.values(room.guessHistory ?? {})
+        const turns = guessHistory.length
+        const lastTurnAt = guessHistory.length > 0 ? Math.max(...guessHistory.map((record) => record.at)) : room.createdAt
+
+        const myLiesDetected = guessHistory.filter((record) => record.toPlayerId === userId && record.lieDetected).length
+        const opponentLiesDetected = opponentId
+          ? guessHistory.filter((record) => record.toPlayerId === opponentId && record.lieDetected).length
+          : 0
+
+        const result: PastGameSummary['result'] = room.winnerId
+          ? room.winnerId === userId
+            ? 'win'
+            : 'loss'
+          : 'unknown'
+
+        return {
+          id,
+          roomName: room.roomName ?? `${room.profiles[room.hostId]?.username ?? 'Host'}'s Room`,
+          playedAt: lastTurnAt,
+          result,
+          myRole,
+          opponentName,
+          gameMode: room.settings.gameMode ?? 'numbers',
+          wordLanguage: room.settings.wordLanguage,
+          codeLength: room.settings.codeLength,
+          allowDuplicates: room.settings.allowDuplicates,
+          allowLies: room.settings.allowLies,
+          isPrivate: room.settings.isPrivate,
+          turns,
+          myLiesDetected,
+          opponentLiesDetected,
+          myPenalties: room.penalties[userId] ?? 0,
+          opponentPenalties: opponentId ? (room.penalties[opponentId] ?? 0) : 0,
+          winnerName: room.winnerId ? room.profiles[room.winnerId]?.username : undefined,
+          message: room.message,
+        }
+      })
+      .filter((item): item is PastGameSummary => Boolean(item))
+      .sort((a, b) => b.playedAt - a.playedAt)
+
+    callback(list)
+  })
+}
+
+async function getActiveHostRoomIds(hostId: string): Promise<string[]> {
   const snapshot = await get(roomsRef)
   if (!snapshot.exists()) return []
 
   const value = snapshot.val() as Record<string, Omit<RoomData, 'id'>>
   return Object.entries(value)
-    .filter(([, room]) => room.hostId === hostId)
+    .filter(([, room]) => room.hostId === hostId && room.status !== 'finished')
     .map(([id]) => id)
 }
 
@@ -338,6 +402,11 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
     const isHost = room.hostId === userId
     const isGuest = room.guestId === userId
     if (!isHost && !isGuest) return room
+
+    // Keep finished games in the database for history and stats pages.
+    if (room.status === 'finished') {
+      return room
+    }
 
     const opponentId = isHost ? room.guestId : room.hostId
     const leaverName = room.profiles[userId]?.username ?? 'A player'

@@ -106,3 +106,25 @@ export interface LobbyRoomSummary {
   hasGuest: boolean
   createdAt: number
 }
+
+export interface PastGameSummary {
+  id: string
+  roomName: string
+  playedAt: number
+  result: 'win' | 'loss' | 'unknown'
+  myRole: 'host' | 'guest'
+  opponentName: string
+  gameMode: GameMode
+  wordLanguage?: WordLanguage
+  codeLength: number
+  allowDuplicates: boolean
+  allowLies: boolean
+  isPrivate: boolean
+  turns: number
+  myLiesDetected: number
+  opponentLiesDetected: number
+  myPenalties: number
+  opponentPenalties: number
+  winnerName?: string
+  message?: string
+}

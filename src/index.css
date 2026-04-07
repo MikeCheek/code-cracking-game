@@ -438,17 +438,21 @@ body::after {
     opacity: 0;
     transform: translate3d(0, 0, 0) scale(0) rotate(0deg);
   }
-  14% {
+  12% {
     opacity: 1;
-    transform: translate3d(calc(var(--emote-dx) * 0.24), calc(var(--emote-dy) * 0.2), 0) scale(0.95) rotate(calc(var(--emote-rotate) * 0.35));
+    transform: translate3d(var(--emote-x1), var(--emote-y1), 0) scale(var(--emote-scale1)) rotate(var(--emote-rotate1));
   }
-  72% {
+  42% {
     opacity: 1;
-    transform: translate3d(calc(var(--emote-dx) * 0.82), calc(var(--emote-dy) * 0.88), 0) scale(1.1) rotate(calc(var(--emote-rotate) * 0.84));
+    transform: translate3d(var(--emote-x2), var(--emote-y2), 0) scale(var(--emote-scale2)) rotate(var(--emote-rotate2));
+  }
+  74% {
+    opacity: 0.95;
+    transform: translate3d(var(--emote-x3), var(--emote-y3), 0) scale(var(--emote-scale3)) rotate(var(--emote-rotate3));
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--emote-dx), var(--emote-dy), 0) scale(1.16) rotate(var(--emote-rotate));
+    transform: translate3d(var(--emote-x4), var(--emote-y4), 0) scale(var(--emote-scale4)) rotate(var(--emote-rotate4));
   }
 }
 
@@ -592,14 +596,29 @@ body::after {
 
 .quick-emote-fly {
   position: absolute;
-  left: 0;
-  bottom: 0;
+  left: var(--emote-origin-x);
+  bottom: var(--emote-origin-y);
   font-size: 2.8rem;
   line-height: 1;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
-  --emote-dx: 160px;
-  --emote-dy: -260px;
-  --emote-rotate: 18deg;
+  --emote-origin-x: 32vw;
+  --emote-origin-y: 16vh;
+  --emote-x1: 80px;
+  --emote-y1: -70px;
+  --emote-x2: -110px;
+  --emote-y2: -200px;
+  --emote-x3: 190px;
+  --emote-y3: -360px;
+  --emote-x4: -140px;
+  --emote-y4: -520px;
+  --emote-rotate1: 8deg;
+  --emote-rotate2: -16deg;
+  --emote-rotate3: 10deg;
+  --emote-rotate4: -8deg;
+  --emote-scale1: 0.95;
+  --emote-scale2: 1.05;
+  --emote-scale3: 1.12;
+  --emote-scale4: 0.9;
   --emote-duration: 2100ms;
   animation-name: quickEmoteFly;
   animation-duration: var(--emote-duration);

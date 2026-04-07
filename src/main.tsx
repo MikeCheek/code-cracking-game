@@ -5,6 +5,9 @@ import toast from 'react-hot-toast'
 import './index.css'
 import App from './App.tsx'
 import { registerSW } from 'virtual:pwa-register'
+import { initializeFirebaseAppCheck } from './lib/appCheck'
+
+initializeFirebaseAppCheck()
 
 const updateSW = registerSW({
   immediate: true,
