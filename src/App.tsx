@@ -88,7 +88,7 @@ function App() {
   const [user, setUser] = useState<UserProfile | null>(initialStoredUser)
   const [username, setUsername] = useState(initialStoredUser?.username ?? '')
   const [avatar, setAvatar] = useState(initialStoredUser?.avatar ?? generateRandomAvatar())
-  const [isAuthInitializing, setIsAuthInitializing] = useState(true)
+  const [isAuthInitializing, setIsAuthInitializing] = useState(() => location.pathname !== '/')
   const [isAuthBusy, setIsAuthBusy] = useState(false)
   const [isAnonymousSession, setIsAnonymousSession] = useState(true)
 
@@ -224,6 +224,13 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (isLandingRoute) {
+      setIsAuthInitializing(false)
+      return
+    }
+
+    setIsAuthInitializing(true)
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
         setIsAnonymousSession(true)
@@ -258,7 +265,7 @@ function App() {
     })
 
     return unsubscribe
-  }, [])
+  }, [isLandingRoute])
 
   // Clear RPS choice, secret lock, and code inputs when hotseat player changes (fixes privacy in hotseat mode)
   useEffect(() => {
