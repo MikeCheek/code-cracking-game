@@ -10,7 +10,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
-  "start_url": "/",
+  "start_url": "/welcome",
   "icons": [
     {
       "src": "/codecracking.png",

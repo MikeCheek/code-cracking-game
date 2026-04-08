@@ -26,6 +26,7 @@ type RoomsPageProps = {
   onNewRoomPasswordChange: (value: string) => void
   onJoinPasswordChange: (value: string) => void
   onCreateRoom: () => Promise<boolean>
+  onQuickStartRoom: () => Promise<boolean>
   onJoinRoom: (roomId: string) => Promise<boolean>
   onWatchRoom: (roomId: string) => Promise<boolean>
   onOpenPastGameResults: (roomId: string) => void
@@ -53,6 +54,7 @@ export function RoomsPage({
   onNewRoomPasswordChange,
   onJoinPasswordChange,
   onCreateRoom,
+  onQuickStartRoom,
   onJoinRoom,
   onWatchRoom,
   onOpenPastGameResults,
@@ -62,6 +64,7 @@ export function RoomsPage({
   const [privateRoomToJoinId, setPrivateRoomToJoinId] = useState<string | null>(null)
   const [showPastGames, setShowPastGames] = useState(false)
   const [showOldOpenGames, setShowOldOpenGames] = useState(false)
+  const [showAdvancedCreateOptions, setShowAdvancedCreateOptions] = useState(false)
   const [roomsViewNow] = useState(() => Date.now())
   const activeLobbyRooms = lobbyRooms.filter((entry) => entry.status !== 'finished')
   const oldOpenLobbyRooms = activeLobbyRooms.filter((entry) => roomsViewNow - entry.createdAt > ONE_DAY_MS)
@@ -82,14 +85,29 @@ export function RoomsPage({
     <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_1fr] gap-3 ">
       <article className="glass-panel-strong rounded-3xl p-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-white">Open games</h2>
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110"
-          >
-            Create game
-          </button>
+          <div>
+            <h2 className="text-xl font-bold text-white">Open games</h2>
+            <p className="mt-1 text-sm text-slate-300">One click to start a match, or open advanced settings if you want to customize it.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => { void onQuickStartRoom() }}
+              className="rounded-2xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15"
+            >
+              Quick start
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAdvancedCreateOptions(false)
+                setShowCreateModal(true)
+              }}
+              className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110"
+            >
+              Create game
+            </button>
+          </div>
         </div>
       </article>
 
@@ -213,6 +231,11 @@ export function RoomsPage({
               </button>
             </div>
 
+            <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-fuchsia-300">Fast start</p>
+              <p className="mt-1 text-sm text-slate-300">The default setup is already tuned for a quick match. Open advanced settings only if you want to change the rules.</p>
+            </div>
+
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-fuchsia-300">Game type</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -251,68 +274,80 @@ export function RoomsPage({
               </button>
             </div>
 
-            <label className="mt-3 block text-sm font-semibold text-slate-100">
-              {selectedGameMode === 'words' ? 'Word length (1-10)' : 'Digits length (1-5)'}
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={selectedGameMode === 'words' ? MAX_WORD_CODE_LENGTH : 5}
-              value={codeLength}
-              onChange={(event) => onCodeLengthChange(Number(event.target.value))}
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 outline-none transition focus:border-fuchsia-300/60"
-            />
+            <button
+              type="button"
+              onClick={() => setShowAdvancedCreateOptions((open) => !open)}
+              className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              {showAdvancedCreateOptions ? 'Hide advanced settings' : 'Show advanced settings'}
+            </button>
 
-            {selectedGameMode === 'numbers' ? (
-              <label className="mt-3 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
+            {showAdvancedCreateOptions && (
+              <div className="mt-3 space-y-3 rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+                <label className="block text-sm font-semibold text-slate-100">
+                  {selectedGameMode === 'words' ? 'Word length (1-10)' : 'Digits length (1-5)'}
+                </label>
                 <input
-                  type="checkbox"
-                  checked={allowDuplicates}
-                  onChange={(event) => onAllowDuplicatesChange(event.target.checked)}
+                  type="number"
+                  min={1}
+                  max={selectedGameMode === 'words' ? MAX_WORD_CODE_LENGTH : 5}
+                  value={codeLength}
+                  onChange={(event) => onCodeLengthChange(Number(event.target.value))}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 outline-none transition focus:border-fuchsia-300/60"
                 />
-                Allow duplicated digits
-              </label>
-            ) : (
-              <div className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
-                Word mode always allows repeated letters when the chosen word contains them.
+
+                {selectedGameMode === 'numbers' ? (
+                  <label className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
+                    <input
+                      type="checkbox"
+                      checked={allowDuplicates}
+                      onChange={(event) => onAllowDuplicatesChange(event.target.checked)}
+                    />
+                    Allow duplicated digits
+                  </label>
+                ) : (
+                  <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
+                    Word mode always allows repeated letters when the chosen word contains them.
+                  </div>
+                )}
+
+                {selectedGameMode === 'words' && (
+                  <label className="block text-sm font-semibold text-slate-100">
+                    Word language
+                    <select
+                      value={selectedWordLanguage}
+                      onChange={(event) => onWordLanguageChange(event.target.value as WordLanguage)}
+                      className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 outline-none transition focus:border-fuchsia-300/60"
+                    >
+                      {WORD_LANGUAGE_OPTIONS.map((language) => (
+                        <option key={language} value={language}>
+                          {WORD_LANGUAGE_LABELS[language]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+
+                <label className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
+                  <input type="checkbox" checked={isPrivate} onChange={(event) => onIsPrivateChange(event.target.checked)} />
+                  Private room
+                </label>
+
+                {isPrivate && (
+                  <input
+                    value={newRoomPassword}
+                    onChange={(event) => onNewRoomPasswordChange(event.target.value)}
+                    placeholder="Room password"
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
+                  />
+                )}
+
+                <label className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
+                  <input type="checkbox" checked={allowLies} onChange={(event) => onAllowLiesChange(event.target.checked)} />
+                  Allow lies (up to 3)
+                </label>
               </div>
             )}
-
-            {selectedGameMode === 'words' && (
-              <label className="mt-3 block text-sm font-semibold text-slate-100">
-                Word language
-                <select
-                  value={selectedWordLanguage}
-                  onChange={(event) => onWordLanguageChange(event.target.value as WordLanguage)}
-                  className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 outline-none transition focus:border-fuchsia-300/60"
-                >
-                  {WORD_LANGUAGE_OPTIONS.map((language) => (
-                    <option key={language} value={language}>
-                      {WORD_LANGUAGE_LABELS[language]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <label className="mt-3 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
-              <input type="checkbox" checked={isPrivate} onChange={(event) => onIsPrivateChange(event.target.checked)} />
-              Private room
-            </label>
-
-            {isPrivate && (
-              <input
-                value={newRoomPassword}
-                onChange={(event) => onNewRoomPasswordChange(event.target.value)}
-                placeholder="Room password"
-                className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
-              />
-            )}
-
-            <label className="mt-3 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
-              <input type="checkbox" checked={allowLies} onChange={(event) => onAllowLiesChange(event.target.checked)} />
-              Allow lies (up to 3)
-            </label>
 
             <button
               onClick={async () => {

@@ -17,6 +17,7 @@ type WelcomePageProps = {
   onEnterLobby: () => void
   onUseSavedProfile: () => void
   onCreateAccountOrLogin: () => void
+  onTryDemo: () => void
 }
 
 export function WelcomePage({
@@ -33,6 +34,7 @@ export function WelcomePage({
   onEnterLobby,
   onUseSavedProfile,
   onCreateAccountOrLogin,
+  onTryDemo,
 }: WelcomePageProps) {
   const [consentShown, setConsentShown] = useState(!isFirstVisit)
   const [editingProfile, setEditingProfile] = useState(!user)
@@ -288,7 +290,7 @@ export function WelcomePage({
           <p className="mt-4 text-lg font-bold text-white">{displayName}</p>
 
           {!editingProfile && user ? (
-            <div className="mt-4 grid w-full max-w-sm grid-cols-2 gap-2">
+            <div className="mt-4 grid w-full max-w-sm grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setEditingProfile(true)}
@@ -302,6 +304,13 @@ export function WelcomePage({
                 className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:brightness-110"
               >
                 Enter game
+              </button>
+              <button
+                type="button"
+                onClick={onTryDemo}
+                className="rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/5"
+              >
+                Demo
               </button>
             </div>
           ) : (

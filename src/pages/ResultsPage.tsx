@@ -1,4 +1,5 @@
 import type { GuessRecord, PlayerProfile, RoomData } from '../types'
+import { buildInviteLink } from '../lib/realtime'
 
 type ResultsPageProps = {
   room: RoomData
@@ -30,6 +31,12 @@ export function ResultsPage({
     strikes: winnerTurns.reduce((sum, entry) => sum + entry.actualBulls, 0),
     balls: winnerTurns.reduce((sum, entry) => sum + entry.actualCows, 0),
   }
+  const inviteLink = buildInviteLink(room.id)
+  const shareText = `${winner ? `${winner.username} won` : 'Match finished'} in ${stats.turns} turns on Code Cracking.`
+
+  const copyResultShare = async () => {
+    await navigator.clipboard.writeText(`${shareText}\n${inviteLink}`)
+  }
 
   return (
     <section className="mx-auto grid h-full w-full max-w-3xl grid-rows-[auto_auto_1fr_auto] gap-3 ">
@@ -37,6 +44,37 @@ export function ResultsPage({
         <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Results</p>
         <h2 className="mt-1 text-2xl font-bold text-white">{winner ? `${winner.avatar} ${winner.username} won` : 'Match finished'}</h2>
         <p className="mt-1 text-sm text-slate-300">{room.message ?? 'Game complete.'}</p>
+      </article>
+
+      <article className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-fuchsia-400/15 via-violet-400/10 to-cyan-300/10 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200/80">Shareable match card</p>
+            <h3 className="mt-2 text-2xl font-black text-white">{shareText}</h3>
+            <p className="mt-2 max-w-xl text-sm text-slate-200">Copy this card to show the result, then send the invite link so the next round starts faster.</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-right">
+            <p className="text-xs text-slate-400">Invite link</p>
+            <p className="mt-1 max-w-[12rem] truncate font-mono text-xs text-fuchsia-100">{inviteLink}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => { void copyResultShare() }}
+            className="rounded-2xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-400 px-4 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110"
+          >
+            Copy result card
+          </button>
+          <button
+            type="button"
+            onClick={() => { void navigator.clipboard.writeText(inviteLink) }}
+            className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Copy invite link
+          </button>
+        </div>
       </article>
 
       <article className="grid grid-cols-3 gap-2">

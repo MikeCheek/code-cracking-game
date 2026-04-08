@@ -36,8 +36,10 @@ import { clearUser, hasAudioConsent, loadAudioSettings, loadUser, saveAudioSetti
 import { generateRandomAvatar, generateRandomUsername } from './utils/profile'
 import { GameplayPage } from './pages/GameplayPage'
 import { HistoryPage } from './pages/HistoryPage'
+import { LandingPage } from './pages/LandingPage'
 import { RoomsPage } from './pages/RoomsPage'
 import { ResultsPage } from './pages/ResultsPage'
+import { PracticePage } from './pages/PracticePage'
 import { WaitingRoomPage } from './pages/WaitingRoomPage'
 import { WelcomePage } from './pages/WelcomePage'
 import { generateRoomName } from './utils/roomName'
@@ -135,8 +137,13 @@ function App() {
   const lastShownRpsResultAtRef = useRef<number | null>(null)
 
   const signedInUserId = user?.id ?? null
+  const isStandaloneDisplay = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(display-mode: standalone)').matches || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone)
+  }, [])
   const inRoomsRoute = location.pathname === '/rooms'
   const inHistoryRoute = location.pathname === '/history'
+  const isLandingRoute = location.pathname === '/'
   const isWelcomeRoute = location.pathname === '/welcome'
 
   useEffect(() => {
@@ -568,6 +575,40 @@ function App() {
       return true
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create room')
+      playAlert()
+      return false
+    }
+  }
+
+  const onQuickStartRoom = async (): Promise<boolean> => {
+    if (!user) return false
+    try {
+      const nextRoomId = await createRoom(
+        user,
+        {
+          codeLength: DEFAULT_CODE_LENGTH,
+          allowDuplicates: false,
+          isPrivate: false,
+          allowLies: true,
+          gameMode: DEFAULT_GAME_MODE,
+        },
+        '',
+        generateRoomName(user.username),
+      )
+      toast.success('Quick match created!')
+      playSuccess()
+      setCodeLength(DEFAULT_CODE_LENGTH)
+      setAllowDuplicates(false)
+      setIsPrivate(false)
+      setAllowLies(true)
+      setSelectedGameMode(DEFAULT_GAME_MODE)
+      setSelectedWordLanguage(DEFAULT_WORD_LANGUAGE)
+      setNewRoomPassword('')
+      setNewRoomName(generateRoomName(user.username))
+      navigate(`/room/${nextRoomId}/waiting`)
+      return true
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to start quick match')
       playAlert()
       return false
     }
@@ -1173,7 +1214,13 @@ function App() {
           <Routes>
             <Route
               path="/"
-              element={<Navigate to={user ? '/rooms' : '/welcome'} replace />}
+              element={isStandaloneDisplay ? <Navigate to="/welcome" replace /> : (
+                <LandingPage
+                  onStartPlaying={() => navigate('/welcome')}
+                  onTryDemo={() => navigate('/practice')}
+                  onSetUpProfile={() => navigate('/welcome')}
+                />
+              )}
             />
 
           <Route
@@ -1194,8 +1241,19 @@ function App() {
                 onEnterLobby={onEnterLobby}
                 onUseSavedProfile={onUseSavedProfile}
                 onCreateAccountOrLogin={onCreateAccountOrLogin}
+                onTryDemo={() => navigate('/practice')}
                 isAuthBusy={isAuthBusy}
                 isAnonymousSession={isAnonymousSession}
+              />
+            }
+          />
+
+          <Route
+            path="/practice"
+            element={
+              <PracticePage
+                onBackToWelcome={() => navigate('/welcome')}
+                onStartLobby={() => navigate('/rooms')}
               />
             }
           />
@@ -1231,6 +1289,7 @@ function App() {
                   onNewRoomPasswordChange={setNewRoomPassword}
                   onJoinPasswordChange={setJoinPassword}
                   onCreateRoom={onCreateRoom}
+                  onQuickStartRoom={onQuickStartRoom}
                   onJoinRoom={onJoinRoom}
                   onWatchRoom={onWatchRoom}
                   onOpenPastGameResults={onOpenPastGameResults}
@@ -1420,7 +1479,7 @@ function App() {
               }
             />
 
-            <Route path="*" element={<Navigate to={user ? '/rooms' : '/welcome'} replace />} />
+            <Route path="*" element={<Navigate to="/welcome" replace />} />
           </Routes>
         </main>
       </div>
@@ -1442,7 +1501,7 @@ function App() {
       :<></>
       }
 
-      {!isWelcomeRoute && user && (
+      {!isWelcomeRoute && !isLandingRoute && user && (
         <div ref={userMenuRef}>
           <button
             type="button"
