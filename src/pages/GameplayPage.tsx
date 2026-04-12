@@ -515,8 +515,8 @@ export function GameplayPage({
                   type="button"
                   onClick={() => setEmotesEnabled((enabled) => !enabled)}
                   className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition ${emotesEnabled
-                      ? 'bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30'
-                      : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30'
+                    ? 'bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30'
+                    : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30'
                     }`}
                 >
                   {emotesEnabled ? 'Receiving emotes: ON' : 'Receiving emotes: OFF'}
@@ -910,8 +910,8 @@ export function GameplayPage({
                             type="button"
                             onClick={() => onClaimedBullsChange(value)}
                             className={`rounded-lg px-2 py-1 text-xs font-bold transition ${claimedBulls === value
-                                ? 'border border-emerald-300/55 bg-emerald-300/35 text-emerald-50'
-                                : 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
+                              ? 'border border-emerald-300/55 bg-emerald-300/35 text-emerald-50'
+                              : 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
                               }`}
                           >
                             {value}
@@ -929,8 +929,8 @@ export function GameplayPage({
                             type="button"
                             onClick={() => onClaimedCowsChange(value)}
                             className={`rounded-lg px-2 py-1 text-xs font-bold transition ${claimedCows === value
-                                ? 'border border-amber-300/55 bg-amber-300/35 text-amber-50'
-                                : 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
+                              ? 'border border-amber-300/55 bg-amber-300/35 text-amber-50'
+                              : 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
                               }`}
                           >
                             {value}
@@ -966,8 +966,8 @@ export function GameplayPage({
                 type="button"
                 onClick={() => setShowAllGuesses(false)}
                 className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!showAllGuesses
-                    ? 'bg-cyan-300/25 text-cyan-100'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
+                  ? 'bg-cyan-300/25 text-cyan-100'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
                   }`}
               >
                 My guesses
@@ -976,8 +976,8 @@ export function GameplayPage({
                 type="button"
                 onClick={() => setShowAllGuesses(true)}
                 className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${showAllGuesses
-                    ? 'bg-cyan-300/25 text-cyan-100'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
+                  ? 'bg-cyan-300/25 text-cyan-100'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
                   }`}
               >
                 All players
@@ -991,12 +991,12 @@ export function GameplayPage({
           ) : (
             <div className="space-y-2">
               {visibleGuesses.map((item) => {
-                const kinds = getDigitKinds(
-                  item.guess,
-                  item.actualBulls,
-                  item.actualCows,
-                  item.toPlayerId === myProfile?.id ? mySecret : undefined,
-                )
+                // const kinds = getDigitKinds(
+                //   item.guess,
+                //   item.actualBulls,
+                //   item.actualCows,
+                //   item.toPlayerId === myProfile?.id ? mySecret : undefined,
+                // )
 
                 return (
                   <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100">
@@ -1056,8 +1056,8 @@ export function GameplayPage({
                   type="button"
                   onClick={() => onRpsChoice(item.value)}
                   className={`rounded-3xl border px-3 py-5 text-center transition ${rpsChoice === item.value
-                      ? 'border-fuchsia-200/45 bg-gradient-to-r from-fuchsia-300 to-violet-400 text-slate-950'
-                      : 'border-white/10 bg-white/5 text-white hover:bg-white/10'
+                    ? 'border-fuchsia-200/45 bg-gradient-to-r from-fuchsia-300 to-violet-400 text-slate-950'
+                    : 'border-white/10 bg-white/5 text-white hover:bg-white/10'
                     }`}
                   title={item.label}
                 >
@@ -1119,8 +1119,8 @@ export function GameplayPage({
                 type="button"
                 onClick={() => setEmotesEnabled((enabled) => !enabled)}
                 className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition ${emotesEnabled
-                    ? 'bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30'
-                    : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30'
+                  ? 'bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30'
+                  : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30'
                   }`}
               >
                 {emotesEnabled ? 'Receiving emotes: ON' : 'Receiving emotes: OFF'}
