@@ -504,7 +504,7 @@ export function GameplayPage({
         </article>
 
         {emotesEnabled && (
-          <div className="pointer-events-none fixed bottom-20 right-4 z-[985] h-0 w-0 sm:bottom-24 sm:right-6">
+          <div className="pointer-events-none fixed bottom-4 right-4 z-[985] h-0 w-0 sm:bottom-24 sm:right-6">
             {flyingEmotes.map((entry) => (
               <span
                 key={entry.id}
@@ -538,7 +538,7 @@ export function GameplayPage({
           </div>
         )}
 
-        <div className="fixed bottom-20 right-4 z-[990] flex flex-col items-end gap-2 sm:bottom-24 sm:right-6">
+        <div className="fixed bottom-4 right-4 z-[990] flex flex-col items-end gap-2 sm:bottom-24 sm:right-6">
           {showEmotePicker && (
             <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 p-3 space-y-3">
               <div className="space-y-2">
@@ -1183,7 +1183,7 @@ export function GameplayPage({
         </div>
       )}
 
-      <div className="fixed bottom-20 right-4 z-[990] flex flex-col items-end gap-2 sm:bottom-24 sm:right-6">
+      <div className="fixed bottom-4 right-4 z-[990] flex flex-col items-end gap-2 sm:bottom-24 sm:right-6">
         {showEmotePicker && (
           <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 p-3 space-y-3">
             <div className="space-y-2">
