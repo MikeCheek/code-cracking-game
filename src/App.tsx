@@ -827,7 +827,7 @@ function App() {
     }
 
     try {
-      void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => {})
+      void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => { })
       await submitGuess(room.id, currentPlayerId, guessInput.trim(), room.settings)
       setGuessInput('')
       if (isHotseatMode) {
@@ -1059,14 +1059,14 @@ function App() {
     setGuessInput(normalizedGuess)
 
     if (room.status === 'playing' && currentPlayerId && myTurn && !room.pendingGuess) {
-      void updateGuessTypingStatus(room.id, currentPlayerId, normalizedGuess.length > 0).catch(() => {})
+      void updateGuessTypingStatus(room.id, currentPlayerId, normalizedGuess.length > 0).catch(() => { })
     }
   }
 
   useEffect(() => {
     if (!room || !currentPlayerId) return
     if (room.status === 'playing' && myTurn && !room.pendingGuess) return
-    void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => {})
+    void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => { })
   }, [currentPlayerId, myTurn, room?.id, room?.pendingGuess?.at, room?.status])
 
   const onLogout = async () => {
@@ -1262,134 +1262,134 @@ function App() {
               )}
             />
 
-          <Route
-            path="/welcome"
-            element={
-              <WelcomePage
-                user={user}
-                username={username}
-                avatar={avatar}
-                isFirstVisit={isFirstVisit}
-                onUsernameChange={setUsername}
-                onAvatarChange={setAvatar}
-                onSetAudioEnabled={setAudioEnabledQuick}
-                onAudioConsentDone={() => {
-                  setAudioConsent(true)
-                  setIsFirstVisit(false)
-                }}
-                onEnterLobby={onEnterLobby}
-                onUseSavedProfile={onUseSavedProfile}
-                onCreateAccountOrLogin={onCreateAccountOrLogin}
-                onTryDemo={() => navigate('/practice')}
-                isAuthBusy={isAuthBusy}
-                isAnonymousSession={isAnonymousSession}
-              />
-            }
-          />
-
-          <Route
-            path="/practice"
-            element={
-              <PracticePage
-                onBackToWelcome={() => navigate('/welcome')}
-                onStartLobby={() => navigate('/rooms')}
-              />
-            }
-          />
-
-          <Route
-            path="/rooms"
-            element={
-              user ? (
-                <RoomsPage
-                  lobbyRooms={lobbyRooms}
-                  codeLength={codeLength}
-                  allowDuplicates={allowDuplicates}
-                  isPrivate={isPrivate}
-                  allowLies={allowLies}
-                  maxTurnSeconds={maxTurnSeconds}
-                  newRoomName={newRoomName}
-                  newRoomPassword={newRoomPassword}
-                  joinPassword={joinPassword}
-                  selectedGameMode={selectedGameMode}
-                  selectedWordLanguage={selectedWordLanguage}
-                  onCodeLengthChange={setCodeLength}
-                  onAllowDuplicatesChange={setAllowDuplicates}
-                  onIsPrivateChange={(nextPrivate) => {
-                    setIsPrivate(nextPrivate)
-                    if (!nextPrivate) {
-                      setNewRoomPassword('')
-                    }
+            <Route
+              path="/welcome"
+              element={
+                <WelcomePage
+                  user={user}
+                  username={username}
+                  avatar={avatar}
+                  isFirstVisit={isFirstVisit}
+                  onUsernameChange={setUsername}
+                  onAvatarChange={setAvatar}
+                  onSetAudioEnabled={setAudioEnabledQuick}
+                  onAudioConsentDone={() => {
+                    setAudioConsent(true)
+                    setIsFirstVisit(false)
                   }}
-                  onAllowLiesChange={setAllowLies}
-                  onMaxTurnSecondsChange={setMaxTurnSeconds}
-                  onGameModeChange={setSelectedGameMode}
-                  onWordLanguageChange={setSelectedWordLanguage}
-                  onNewRoomNameChange={setNewRoomName}
-                  onRegenerateRoomName={() => setNewRoomName(generateRoomName(user.username))}
-                  onNewRoomPasswordChange={setNewRoomPassword}
-                  onJoinPasswordChange={setJoinPassword}
-                  onCreateRoom={onCreateRoom}
-                  onQuickStartRoom={onQuickStartRoom}
-                  onJoinRoom={onJoinRoom}
-                  onWatchRoom={onWatchRoom}
-                  onOpenPastGameResults={onOpenPastGameResults}
+                  onEnterLobby={onEnterLobby}
+                  onUseSavedProfile={onUseSavedProfile}
+                  onCreateAccountOrLogin={onCreateAccountOrLogin}
+                  onTryDemo={() => navigate('/practice')}
+                  isAuthBusy={isAuthBusy}
+                  isAnonymousSession={isAnonymousSession}
                 />
-              ) : (
-                <Navigate to="/welcome" replace />
-              )
-            }
-          />
+              }
+            />
 
-          <Route
-            path="/history"
-            element={
-              user ? (
-                isAnonymousSession ? (
-                  <Navigate to="/rooms" replace />
-                ) : (
-                  <HistoryPage games={pastGames} onOpenPastResult={onOpenHistoryMatch} />
-                )
-              ) : (
-                <Navigate to="/welcome" replace />
-              )
-            }
-          />
+            <Route
+              path="/practice"
+              element={
+                <PracticePage
+                  onBackToWelcome={() => navigate('/welcome')}
+                  onStartLobby={() => navigate('/rooms')}
+                />
+              }
+            />
 
-          <Route
-            path="/room/:roomId"
-            element={<Navigate to={routeRoomId ? `/room/${routeRoomId}/waiting` : '/rooms'} replace />}
-          />
-
-          <Route
-            path="/room/:roomId/waiting"
-            element={
-              user ? (
-                room ? (
-                  <WaitingRoomPage
-                    user={user}
-                    room={room}
-                    myProfile={myProfile}
-                    opponentProfile={opponentProfile}
-                    onLeaveRoom={requestLeaveRoom}
-                    onDeleteRoom={() => onDeleteHostedRoom(room.id)}
-                    canDeleteRoom={room.hostId === user.id}
-                    onCopyInvite={onCopyInvite}
-                    onShareTelegram={onShareInviteTelegram}
-                    onShareWhatsApp={onShareInviteWhatsApp}
-                    onJoinAsPlayer2={onOpenWaitingRoomP2Setup}
+            <Route
+              path="/rooms"
+              element={
+                user ? (
+                  <RoomsPage
+                    lobbyRooms={lobbyRooms}
+                    codeLength={codeLength}
+                    allowDuplicates={allowDuplicates}
+                    isPrivate={isPrivate}
+                    allowLies={allowLies}
+                    maxTurnSeconds={maxTurnSeconds}
+                    newRoomName={newRoomName}
+                    newRoomPassword={newRoomPassword}
+                    joinPassword={joinPassword}
+                    selectedGameMode={selectedGameMode}
+                    selectedWordLanguage={selectedWordLanguage}
+                    onCodeLengthChange={setCodeLength}
+                    onAllowDuplicatesChange={setAllowDuplicates}
+                    onIsPrivateChange={(nextPrivate) => {
+                      setIsPrivate(nextPrivate)
+                      if (!nextPrivate) {
+                        setNewRoomPassword('')
+                      }
+                    }}
+                    onAllowLiesChange={setAllowLies}
+                    onMaxTurnSecondsChange={setMaxTurnSeconds}
+                    onGameModeChange={setSelectedGameMode}
+                    onWordLanguageChange={setSelectedWordLanguage}
+                    onNewRoomNameChange={setNewRoomName}
+                    onRegenerateRoomName={() => setNewRoomName(generateRoomName(user.username))}
+                    onNewRoomPasswordChange={setNewRoomPassword}
+                    onJoinPasswordChange={setJoinPassword}
+                    onCreateRoom={onCreateRoom}
+                    onQuickStartRoom={onQuickStartRoom}
+                    onJoinRoom={onJoinRoom}
+                    onWatchRoom={onWatchRoom}
+                    onOpenPastGameResults={onOpenPastGameResults}
                   />
                 ) : (
-                  <section className="glass-panel rounded-3xl p-6">
-                    <h2 className="text-2xl font-bold text-white">Loading room...</h2>
-                    <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
-                  </section>
+                  <Navigate to="/welcome" replace />
                 )
-              ) : (
-                <Navigate to="/welcome" replace />
-              )
-            }
-          />
+              }
+            />
+
+            <Route
+              path="/history"
+              element={
+                user ? (
+                  isAnonymousSession ? (
+                    <Navigate to="/rooms" replace />
+                  ) : (
+                    <HistoryPage games={pastGames} onOpenPastResult={onOpenHistoryMatch} />
+                  )
+                ) : (
+                  <Navigate to="/welcome" replace />
+                )
+              }
+            />
+
+            <Route
+              path="/room/:roomId"
+              element={<Navigate to={routeRoomId ? `/room/${routeRoomId}/waiting` : '/rooms'} replace />}
+            />
+
+            <Route
+              path="/room/:roomId/waiting"
+              element={
+                user ? (
+                  room ? (
+                    <WaitingRoomPage
+                      user={user}
+                      room={room}
+                      myProfile={myProfile}
+                      opponentProfile={opponentProfile}
+                      onLeaveRoom={requestLeaveRoom}
+                      onDeleteRoom={() => onDeleteHostedRoom(room.id)}
+                      canDeleteRoom={room.hostId === user.id}
+                      onCopyInvite={onCopyInvite}
+                      onShareTelegram={onShareInviteTelegram}
+                      onShareWhatsApp={onShareInviteWhatsApp}
+                      onJoinAsPlayer2={onOpenWaitingRoomP2Setup}
+                    />
+                  ) : (
+                    <section className="glass-panel rounded-3xl p-6">
+                      <h2 className="text-2xl font-bold text-white">Loading room...</h2>
+                      <p className="mt-2 text-sm text-slate-300">Connecting to game state.</p>
+                    </section>
+                  )
+                ) : (
+                  <Navigate to="/welcome" replace />
+                )
+              }
+            />
 
             <Route
               path="/room/:roomId/play"
@@ -1457,19 +1457,19 @@ function App() {
                       guessInput=""
                       claimedBulls={0}
                       claimedCows={0}
-                      onRpsChoice={() => {}}
-                      onSecretInputChange={() => {}}
-                      onGuessInputChange={() => {}}
-                      onClaimedBullsChange={() => {}}
-                      onClaimedCowsChange={() => {}}
-                      onSubmitSecret={() => {}}
-                      onUnlockSecret={() => {}}
-                      onSubmitGuess={() => {}}
-                      onAnswerGuess={() => {}}
+                      onRpsChoice={() => { }}
+                      onSecretInputChange={() => { }}
+                      onGuessInputChange={() => { }}
+                      onClaimedBullsChange={() => { }}
+                      onClaimedCowsChange={() => { }}
+                      onSubmitSecret={() => { }}
+                      onUnlockSecret={() => { }}
+                      onSubmitGuess={() => { }}
+                      onAnswerGuess={() => { }}
                       onSendQuickEmote={onSendQuickEmote}
                       onBackToRooms={onBackToGames}
                       onLeaveRoom={requestLeaveRoom}
-                      onDeleteRoom={() => {}}
+                      onDeleteRoom={() => { }}
                       canDeleteRoom={false}
                       isCheckingWordSecret={false}
                       isCheckingWordGuess={false}
@@ -1525,7 +1525,7 @@ function App() {
         </main>
       </div>
 
-       {!isWelcomeRoute? <a
+      {!isWelcomeRoute ? <a
         href="https://ko-fi.com/K3K21X43RG"
         target="_blank"
         rel="noreferrer"
@@ -1539,7 +1539,7 @@ function App() {
           alt="Buy Me a Coffee at ko-fi.com"
         />
       </a>
-      :<></>
+        : <></>
       }
 
       {!isWelcomeRoute && !isLandingRoute && user && (
@@ -1678,94 +1678,93 @@ function App() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-4">Audio & Visual</h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-2">Theme</p>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        {UI_THEME_OPTIONS.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => setUiTheme(item.id)}
-                            className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
-                              audioSettings.uiTheme === item.id
-                                ? 'border-fuchsia-300/40 bg-fuchsia-300/20 text-white'
-                                : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+              <div>
+                <h3 className="text-lg font-bold text-white mb-4">Audio & Visual</h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-2">Theme</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {UI_THEME_OPTIONS.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setUiTheme(item.id)}
+                          className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${audioSettings.uiTheme === item.id
+                              ? 'border-fuchsia-300/40 bg-fuchsia-300/20 text-white'
+                              : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
                             }`}
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="flex items-center justify-between text-sm font-semibold text-slate-100 mb-2">
-                        <span>Music theme</span>
-                        <select
-                          value={audioSettings.musicTheme}
-                          onChange={(event) => {
-                            setMusicTheme(event.target.value === 'calm' ? 'calm' : 'arcade')
-                            void ensureAudioReady()
-                          }}
-                          className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-100"
                         >
-                          <option value="arcade">Arcade</option>
-                          <option value="calm">Calm</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <div>
-                      <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 mb-2">
-                        <span>Background music</span>
-                        <input
-                          type="checkbox"
-                          checked={audioSettings.musicEnabled}
-                          onChange={(event) => {
-                            setMusicEnabled(event.target.checked)
-                            void ensureAudioReady()
-                          }}
-                        />
-                      </label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={Math.round(audioSettings.musicVolume * 100)}
-                        onChange={(event) => setMusicVolume(Number(event.target.value) / 100)}
-                        className="w-full"
-                      />
-                      <p className="mt-1 text-xs text-slate-300">Volume: {Math.round(audioSettings.musicVolume * 100)}%</p>
-                    </div>
-
-                    <div>
-                      <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 mb-2">
-                        <span>Sound effects</span>
-                        <input
-                          type="checkbox"
-                          checked={audioSettings.sfxEnabled}
-                          onChange={(event) => {
-                            setSfxEnabled(event.target.checked)
-                            void ensureAudioReady()
-                          }}
-                        />
-                      </label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={Math.round(audioSettings.sfxVolume * 100)}
-                        onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
-                        className="w-full"
-                      />
-                      <p className="mt-1 text-xs text-slate-300">Volume: {Math.round(audioSettings.sfxVolume * 100)}%</p>
+                          {item.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
+
+                  <div>
+                    <label className="flex items-center justify-between text-sm font-semibold text-slate-100 mb-2">
+                      <span>Music theme</span>
+                      <select
+                        value={audioSettings.musicTheme}
+                        onChange={(event) => {
+                          setMusicTheme(event.target.value === 'calm' ? 'calm' : 'arcade')
+                          void ensureAudioReady()
+                        }}
+                        className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+                      >
+                        <option value="arcade">Arcade</option>
+                        <option value="calm">Calm</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 mb-2">
+                      <span>Background music</span>
+                      <input
+                        type="checkbox"
+                        checked={audioSettings.musicEnabled}
+                        onChange={(event) => {
+                          setMusicEnabled(event.target.checked)
+                          void ensureAudioReady()
+                        }}
+                      />
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round(audioSettings.musicVolume * 100)}
+                      onChange={(event) => setMusicVolume(Number(event.target.value) / 100)}
+                      className="w-full"
+                    />
+                    <p className="mt-1 text-xs text-slate-300">Volume: {Math.round(audioSettings.musicVolume * 100)}%</p>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 mb-2">
+                      <span>Sound effects</span>
+                      <input
+                        type="checkbox"
+                        checked={audioSettings.sfxEnabled}
+                        onChange={(event) => {
+                          setSfxEnabled(event.target.checked)
+                          void ensureAudioReady()
+                        }}
+                      />
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round(audioSettings.sfxVolume * 100)}
+                      onChange={(event) => setSfxVolume(Number(event.target.value) / 100)}
+                      className="w-full"
+                    />
+                    <p className="mt-1 text-xs text-slate-300">Volume: {Math.round(audioSettings.sfxVolume * 100)}%</p>
+                  </div>
                 </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1863,17 +1862,15 @@ function App() {
 
             <div className="relative mt-6 h-28 ">
               <div
-                className={`rps-showdown-token rps-showdown-left ${
-                  rpsShowdown.result === 'host' ? 'rps-showdown-left-win' : rpsShowdown.result === 'tie' ? 'rps-showdown-left-tie' : 'rps-showdown-left-lose'
-                }`}
+                className={`rps-showdown-token rps-showdown-left ${rpsShowdown.result === 'host' ? 'rps-showdown-left-win' : rpsShowdown.result === 'tie' ? 'rps-showdown-left-tie' : 'rps-showdown-left-lose'
+                  }`}
                 aria-label={`${rpsShowdown.hostName} played ${rpsShowdown.hostChoice}`}
               >
                 {RPS_SYMBOLS[rpsShowdown.hostChoice]}
               </div>
               <div
-                className={`rps-showdown-token rps-showdown-right ${
-                  rpsShowdown.result === 'guest' ? 'rps-showdown-right-win' : rpsShowdown.result === 'tie' ? 'rps-showdown-right-tie' : 'rps-showdown-right-lose'
-                }`}
+                className={`rps-showdown-token rps-showdown-right ${rpsShowdown.result === 'guest' ? 'rps-showdown-right-win' : rpsShowdown.result === 'tie' ? 'rps-showdown-right-tie' : 'rps-showdown-right-lose'
+                  }`}
                 aria-label={`${rpsShowdown.guestName} played ${rpsShowdown.guestChoice}`}
               >
                 {RPS_SYMBOLS[rpsShowdown.guestChoice]}

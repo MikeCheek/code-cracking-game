@@ -123,9 +123,9 @@ export function WaitingRoomPage({
         </div>
 
         <div className="glass-panel rounded-3xl p-4">
-           <div className="flex items-center justify-center rounded-3xl p-4">
-          <div className="animate-hourglass text-7xl" aria-hidden="true">⏳</div>
-        </div>
+          <div className="flex items-center justify-center rounded-3xl p-4">
+            <div className="animate-hourglass text-7xl" aria-hidden="true">⏳</div>
+          </div>
           <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Share invite</p>
           <div className="mt-3 grid gap-2">
             <button

@@ -6,26 +6,38 @@ import {
   ref,
   runTransaction,
   set,
-  type Unsubscribe,
+  type Unsubscribe
 } from 'firebase/database'
 import { DEFAULT_WORD_LANGUAGE, MAX_PENALTIES } from '../constants'
 import { db } from './firebase'
-import { decideRpsWinner, evaluateGuess, isValidCombination } from '../utils/game'
+import {
+  decideRpsWinner,
+  evaluateGuess,
+  isValidCombination
+} from '../utils/game'
 import { normalizeRoomName } from '../utils/roomName'
-import type { GuessRecord, LobbyRoomSummary, PastGameSummary, RoomData, RoomSettings, RpsChoice, UserProfile } from '../types'
+import type {
+  GuessRecord,
+  LobbyRoomSummary,
+  PastGameSummary,
+  RoomData,
+  RoomSettings,
+  RpsChoice,
+  UserProfile
+} from '../types'
 import { isRealWord, normalizeWordInput } from './wordValidation'
 
 const roomsRef = ref(db, 'rooms')
 const RPS_ROUND_MS = 5000
 const RPS_CHOICES: RpsChoice[] = ['rock', 'paper', 'scissors']
 
-function getTurnDurationMs(room: RoomData): number | null {
+function getTurnDurationMs (room: RoomData): number | null {
   const seconds = room.settings.maxTurnSeconds
   if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return null
   return Math.round(seconds * 1000)
 }
 
-function setNextTurnDeadline(room: RoomData, actorId: string): void {
+function setNextTurnDeadline (room: RoomData, actorId: string): void {
   const durationMs = getTurnDurationMs(room)
   if (!durationMs) {
     delete room.turnDeadlineAt
@@ -37,15 +49,15 @@ function setNextTurnDeadline(room: RoomData, actorId: string): void {
   room.turnDeadlineAt = Date.now() + durationMs
 }
 
-function roomRef(roomId: string) {
+function roomRef (roomId: string) {
   return child(roomsRef, roomId)
 }
 
-function randomRpsChoice(): RpsChoice {
+function randomRpsChoice (): RpsChoice {
   return RPS_CHOICES[Math.floor(Math.random() * RPS_CHOICES.length)]
 }
 
-function resolveRpsRound(room: RoomData): RoomData {
+function resolveRpsRound (room: RoomData): RoomData {
   if (!room.guestId) return room
 
   room.rpsChoices = room.rpsChoices ?? {}
@@ -58,7 +70,7 @@ function resolveRpsRound(room: RoomData): RoomData {
     hostChoice,
     guestChoice,
     winner: winner === 0 ? 'tie' : winner === 1 ? 'host' : 'guest',
-    at: Date.now(),
+    at: Date.now()
   }
 
   delete room.rpsDeadlineAt
@@ -79,10 +91,10 @@ function resolveRpsRound(room: RoomData): RoomData {
   return room
 }
 
-async function validateCodeForRoom(
+async function validateCodeForRoom (
   value: string,
   settings: RoomSettings,
-  label: 'secret' | 'guess',
+  label: 'secret' | 'guess'
 ): Promise<string> {
   const gameMode = settings.gameMode ?? 'numbers'
 
@@ -101,30 +113,32 @@ async function validateCodeForRoom(
     return normalizedWord
   }
 
-  if (!isValidCombination(value, settings.codeLength, settings.allowDuplicates)) {
+  if (
+    !isValidCombination(value, settings.codeLength, settings.allowDuplicates)
+  ) {
     throw new Error(`Invalid ${label} for this room settings`)
   }
 
   return value
 }
 
-async function sha256(value: string): Promise<string> {
+async function sha256 (value: string): Promise<string> {
   const encoder = new TextEncoder()
   const bytes = encoder.encode(value)
   const hashBuffer = await crypto.subtle.digest('SHA-256', bytes)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-export async function createRoom(
+export async function createRoom (
   user: UserProfile,
   settings: Omit<RoomSettings, 'passwordHash'>,
   password: string,
-  roomName: string,
+  roomName: string
 ): Promise<string> {
   // Keep only one active room per host by deleting older active rooms before creating a new one.
   const existingByHost = await getActiveHostRoomIds(user.id)
-  await Promise.all(existingByHost.map((id) => set(roomRef(id), null)))
+  await Promise.all(existingByHost.map(id => set(roomRef(id), null)))
 
   const newRoom = push(roomsRef)
   if (!newRoom.key) {
@@ -132,7 +146,10 @@ export async function createRoom(
   }
 
   const normalizedPassword = password.trim()
-  const passwordHash = settings.isPrivate && normalizedPassword ? await sha256(normalizedPassword) : undefined
+  const passwordHash =
+    settings.isPrivate && normalizedPassword
+      ? await sha256(normalizedPassword)
+      : undefined
   const normalizedRoomName = normalizeRoomName(roomName, user.username)
 
   const payload: Omit<RoomData, 'id'> = {
@@ -142,28 +159,34 @@ export async function createRoom(
     hostId: user.id,
     settings: {
       ...settings,
-      ...(passwordHash ? { passwordHash } : {}),
+      ...(passwordHash ? { passwordHash } : {})
     },
     profiles: {
       [user.id]: {
         ...user,
-        joinedAt: Date.now(),
-      },
+        joinedAt: Date.now()
+      }
     },
     penalties: {
-      [user.id]: 0,
+      [user.id]: 0
     },
-    rpsRound: 1,
+    rpsRound: 1
   }
 
   await set(newRoom, payload)
   return newRoom.key
 }
 
-export async function joinRoom(roomId: string, user: UserProfile, password: string): Promise<void> {
+export async function joinRoom (
+  roomId: string,
+  user: UserProfile,
+  password: string
+): Promise<void> {
   const currentRef = roomRef(roomId)
   const normalizedPassword = password.trim()
-  const passwordHash = normalizedPassword ? await sha256(normalizedPassword) : undefined
+  const passwordHash = normalizedPassword
+    ? await sha256(normalizedPassword)
+    : undefined
 
   const tx = await runTransaction(currentRef, (room: RoomData | null) => {
     if (!room) {
@@ -178,7 +201,11 @@ export async function joinRoom(roomId: string, user: UserProfile, password: stri
       return room
     }
 
-    if (!isParticipantRejoin && room.settings.isPrivate && (room.settings.passwordHash ?? '') !== (passwordHash ?? '')) {
+    if (
+      !isParticipantRejoin &&
+      room.settings.isPrivate &&
+      (room.settings.passwordHash ?? '') !== (passwordHash ?? '')
+    ) {
       throw new Error('Wrong room password')
     }
 
@@ -189,7 +216,7 @@ export async function joinRoom(roomId: string, user: UserProfile, password: stri
 
     room.profiles[user.id] = {
       ...user,
-      joinedAt: Date.now(),
+      joinedAt: Date.now()
     }
 
     room.penalties[user.id] = room.penalties[user.id] ?? 0
@@ -208,7 +235,11 @@ export async function joinRoom(roomId: string, user: UserProfile, password: stri
   }
 }
 
-export async function joinOwnRoomAsGuest(roomId: string, hostUserId: string, guestProfile: UserProfile): Promise<void> {
+export async function joinOwnRoomAsGuest (
+  roomId: string,
+  hostUserId: string,
+  guestProfile: UserProfile
+): Promise<void> {
   const currentRef = roomRef(roomId)
 
   const tx = await runTransaction(currentRef, (room: RoomData | null) => {
@@ -231,7 +262,7 @@ export async function joinOwnRoomAsGuest(roomId: string, hostUserId: string, gue
 
     room.profiles[guestProfile.id] = {
       ...guestProfile,
-      joinedAt: Date.now(),
+      joinedAt: Date.now()
     }
 
     room.penalties[guestProfile.id] = room.penalties[guestProfile.id] ?? 0
@@ -245,7 +276,10 @@ export async function joinOwnRoomAsGuest(roomId: string, hostUserId: string, gue
   }
 }
 
-export async function joinRoomAsSpectator(roomId: string, user: UserProfile): Promise<void> {
+export async function joinRoomAsSpectator (
+  roomId: string,
+  user: UserProfile
+): Promise<void> {
   const currentRef = roomRef(roomId)
 
   const tx = await runTransaction(currentRef, (room: RoomData | null) => {
@@ -259,7 +293,7 @@ export async function joinRoomAsSpectator(roomId: string, user: UserProfile): Pr
     room.spectatorProfiles = room.spectatorProfiles ?? {}
     room.spectatorProfiles[user.id] = {
       ...user,
-      joinedAt: Date.now(),
+      joinedAt: Date.now()
     }
     room.message = `${user.username} is watching the match`
     return room
@@ -270,9 +304,12 @@ export async function joinRoomAsSpectator(roomId: string, user: UserProfile): Pr
   }
 }
 
-export function subscribeRoom(roomId: string, callback: (room: RoomData | null) => void): Unsubscribe {
+export function subscribeRoom (
+  roomId: string,
+  callback: (room: RoomData | null) => void
+): Unsubscribe {
   const currentRef = roomRef(roomId)
-  return onValue(currentRef, (snapshot) => {
+  return onValue(currentRef, snapshot => {
     const value = snapshot.val() as Omit<RoomData, 'id'> | null
     if (!value) {
       callback(null)
@@ -281,13 +318,17 @@ export function subscribeRoom(roomId: string, callback: (room: RoomData | null) 
     callback({
       id: roomId,
       ...value,
-      roomName: value.roomName ?? `${value.profiles[value.hostId]?.username ?? 'Host'}'s Room`,
+      roomName:
+        value.roomName ??
+        `${value.profiles[value.hostId]?.username ?? 'Host'}'s Room`
     })
   })
 }
 
-export function subscribeLobby(callback: (rooms: LobbyRoomSummary[]) => void): Unsubscribe {
-  return onValue(roomsRef, (snapshot) => {
+export function subscribeLobby (
+  callback: (rooms: LobbyRoomSummary[]) => void
+): Unsubscribe {
+  return onValue(roomsRef, snapshot => {
     const value = snapshot.val() as Record<string, Omit<RoomData, 'id'>> | null
     if (!value) {
       callback([])
@@ -297,7 +338,9 @@ export function subscribeLobby(callback: (rooms: LobbyRoomSummary[]) => void): U
     const list = Object.entries(value)
       .map(([id, room]) => ({
         id,
-        roomName: room.roomName ?? `${room.profiles[room.hostId]?.username ?? 'Host'}'s Room`,
+        roomName:
+          room.roomName ??
+          `${room.profiles[room.hostId]?.username ?? 'Host'}'s Room`,
         status: room.status,
         gameMode: room.settings.gameMode ?? 'numbers',
         wordLanguage: room.settings.wordLanguage,
@@ -308,7 +351,7 @@ export function subscribeLobby(callback: (rooms: LobbyRoomSummary[]) => void): U
         allowDuplicates: room.settings.allowDuplicates,
         maxTurnSeconds: room.settings.maxTurnSeconds,
         hasGuest: Boolean(room.guestId),
-        createdAt: room.createdAt,
+        createdAt: room.createdAt
       }))
       .sort((a, b) => b.createdAt - a.createdAt)
 
@@ -316,8 +359,11 @@ export function subscribeLobby(callback: (rooms: LobbyRoomSummary[]) => void): U
   })
 }
 
-export function subscribePastGames(userId: string, callback: (games: PastGameSummary[]) => void): Unsubscribe {
-  return onValue(roomsRef, (snapshot) => {
+export function subscribePastGames (
+  userId: string,
+  callback: (games: PastGameSummary[]) => void
+): Unsubscribe {
+  return onValue(roomsRef, snapshot => {
     const value = snapshot.val() as Record<string, Omit<RoomData, 'id'>> | null
     if (!value) {
       callback([])
@@ -334,15 +380,24 @@ export function subscribePastGames(userId: string, callback: (games: PastGameSum
 
         const myRole = isHost ? 'host' : 'guest'
         const opponentId = isHost ? room.guestId : room.hostId
-        const opponentName = opponentId ? (room.profiles[opponentId]?.username ?? 'Unknown player') : 'No opponent'
+        const opponentName = opponentId
+          ? room.profiles[opponentId]?.username ?? 'Unknown player'
+          : 'No opponent'
 
         const guessHistory = Object.values(room.guessHistory ?? {})
         const turns = guessHistory.length
-        const lastTurnAt = guessHistory.length > 0 ? Math.max(...guessHistory.map((record) => record.at)) : room.createdAt
+        const lastTurnAt =
+          guessHistory.length > 0
+            ? Math.max(...guessHistory.map(record => record.at))
+            : room.createdAt
 
-        const myLiesDetected = guessHistory.filter((record) => record.toPlayerId === userId && record.lieDetected).length
+        const myLiesDetected = guessHistory.filter(
+          record => record.toPlayerId === userId && record.lieDetected
+        ).length
         const opponentLiesDetected = opponentId
-          ? guessHistory.filter((record) => record.toPlayerId === opponentId && record.lieDetected).length
+          ? guessHistory.filter(
+              record => record.toPlayerId === opponentId && record.lieDetected
+            ).length
           : 0
 
         const result: PastGameSummary['result'] = room.winnerId
@@ -353,7 +408,9 @@ export function subscribePastGames(userId: string, callback: (games: PastGameSum
 
         return {
           id,
-          roomName: room.roomName ?? `${room.profiles[room.hostId]?.username ?? 'Host'}'s Room`,
+          roomName:
+            room.roomName ??
+            `${room.profiles[room.hostId]?.username ?? 'Host'}'s Room`,
           playedAt: lastTurnAt,
           result,
           myRole,
@@ -368,9 +425,11 @@ export function subscribePastGames(userId: string, callback: (games: PastGameSum
           myLiesDetected,
           opponentLiesDetected,
           myPenalties: room.penalties[userId] ?? 0,
-          opponentPenalties: opponentId ? (room.penalties[opponentId] ?? 0) : 0,
-          winnerName: room.winnerId ? room.profiles[room.winnerId]?.username : undefined,
-          message: room.message,
+          opponentPenalties: opponentId ? room.penalties[opponentId] ?? 0 : 0,
+          winnerName: room.winnerId
+            ? room.profiles[room.winnerId]?.username
+            : undefined,
+          message: room.message
         }
       })
       .filter((item): item is PastGameSummary => Boolean(item))
@@ -380,7 +439,7 @@ export function subscribePastGames(userId: string, callback: (games: PastGameSum
   })
 }
 
-async function getActiveHostRoomIds(hostId: string): Promise<string[]> {
+async function getActiveHostRoomIds (hostId: string): Promise<string[]> {
   const snapshot = await get(roomsRef)
   if (!snapshot.exists()) return []
 
@@ -390,7 +449,10 @@ async function getActiveHostRoomIds(hostId: string): Promise<string[]> {
     .map(([id]) => id)
 }
 
-export async function deleteRoom(roomId: string, userId: string): Promise<void> {
+export async function deleteRoom (
+  roomId: string,
+  userId: string
+): Promise<void> {
   const targetRef = roomRef(roomId)
 
   const tx = await runTransaction(targetRef, (room: RoomData | null) => {
@@ -406,7 +468,7 @@ export async function deleteRoom(roomId: string, userId: string): Promise<void> 
   }
 }
 
-export async function leaveRoom(roomId: string, userId: string): Promise<void> {
+export async function leaveRoom (roomId: string, userId: string): Promise<void> {
   const targetRef = roomRef(roomId)
 
   const tx = await runTransaction(targetRef, (room: RoomData | null) => {
@@ -437,7 +499,10 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
       return null
     }
 
-    if (room.pausedByDisconnect?.playerId && room.pausedByDisconnect.playerId !== userId) {
+    if (
+      room.pausedByDisconnect?.playerId &&
+      room.pausedByDisconnect.playerId !== userId
+    ) {
       // Both players have now left; clean up the room.
       return null
     }
@@ -449,7 +514,7 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
     const opponentName = room.profiles[opponentId]?.username ?? 'Opponent'
     room.pausedByDisconnect = {
       playerId: userId,
-      at: Date.now(),
+      at: Date.now()
     }
     room.message = `${leaverName} disconnected. ${opponentName}, keep waiting or leave too.`
     return room
@@ -460,17 +525,25 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
   }
 }
 
-export async function keepWaitingForRejoin(roomId: string, userId: string): Promise<void> {
+export async function keepWaitingForRejoin (
+  roomId: string,
+  userId: string
+): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || !room.pausedByDisconnect?.playerId) return room
     const waitingName = room.profiles[userId]?.username ?? 'Opponent'
-    const disconnectedName = room.profiles[room.pausedByDisconnect.playerId]?.username ?? 'player'
+    const disconnectedName =
+      room.profiles[room.pausedByDisconnect.playerId]?.username ?? 'player'
     room.message = `${waitingName} is waiting for ${disconnectedName} to rejoin.`
     return room
   })
 }
 
-export async function chooseRps(roomId: string, userId: string, choice: RpsChoice): Promise<void> {
+export async function chooseRps (
+  roomId: string,
+  userId: string,
+  choice: RpsChoice
+): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'rps') return room
     if (!room.guestId) return room
@@ -489,7 +562,7 @@ export async function chooseRps(roomId: string, userId: string, choice: RpsChoic
   })
 }
 
-export async function finalizeRpsRound(roomId: string): Promise<void> {
+export async function finalizeRpsRound (roomId: string): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'rps') return room
     if (!room.guestId) return room
@@ -500,7 +573,11 @@ export async function finalizeRpsRound(roomId: string): Promise<void> {
   })
 }
 
-export async function sendQuickEmote(roomId: string, userId: string, emote: string): Promise<void> {
+export async function sendQuickEmote (
+  roomId: string,
+  userId: string,
+  emote: string
+): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room) return room
     const isPlayer = Boolean(room.profiles[userId])
@@ -513,14 +590,19 @@ export async function sendQuickEmote(roomId: string, userId: string, emote: stri
     const nextAt = Math.max(Date.now(), previousAt + 1)
     room.quickEmotes[userId] = {
       value: emote,
-      at: nextAt,
+      at: nextAt
     }
 
     return room
   })
 }
 
-export async function submitSecret(roomId: string, userId: string, secret: string, settings: RoomSettings): Promise<void> {
+export async function submitSecret (
+  roomId: string,
+  userId: string,
+  secret: string,
+  settings: RoomSettings
+): Promise<void> {
   const normalizedSecret = await validateCodeForRoom(secret, settings, 'secret')
 
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
@@ -538,14 +620,20 @@ export async function submitSecret(roomId: string, userId: string, secret: strin
       room.rpsChoices = {}
       room.rpsRound = Math.max(1, room.rpsRound ?? 1)
       room.rpsDeadlineAt = Date.now() + RPS_ROUND_MS
-      room.message = 'All secrets locked. Choose Rock, Paper, Scissors to decide who starts.'
+      room.message =
+        'All secrets locked. Choose Rock, Paper, Scissors to decide who starts.'
     }
 
     return room
   })
 }
 
-export async function submitGuess(roomId: string, userId: string, guess: string, settings: RoomSettings): Promise<void> {
+export async function submitGuess (
+  roomId: string,
+  userId: string,
+  guess: string,
+  settings: RoomSettings
+): Promise<void> {
   const normalizedGuess = await validateCodeForRoom(guess, settings, 'guess')
 
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
@@ -559,7 +647,7 @@ export async function submitGuess(roomId: string, userId: string, guess: string,
       fromPlayerId: userId,
       guess: normalizedGuess,
       turnNumber,
-      at: Date.now(),
+      at: Date.now()
     }
 
     if (room.typingByPlayer?.[userId]) {
@@ -579,11 +667,11 @@ export async function submitGuess(roomId: string, userId: string, guess: string,
   })
 }
 
-export async function answerGuess(
+export async function answerGuess (
   roomId: string,
   responderId: string,
   claimedBulls: number,
-  claimedCows: number,
+  claimedCows: number
 ): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'playing' || !room.guestId) return room
@@ -602,10 +690,11 @@ export async function answerGuess(
     if (!responderSecret) return room
 
     const actual = evaluateGuess(responderSecret, pending.guess)
-    
+
     // A lie is detected when the response doesn't match actual values
-    const lieDetected = actual.bulls !== claimedBulls || actual.cows !== claimedCows
-    
+    const lieDetected =
+      actual.bulls !== claimedBulls || actual.cows !== claimedCows
+
     if (room.typingByPlayer?.[responderId]) {
       delete room.typingByPlayer[responderId]
       if (Object.keys(room.typingByPlayer).length === 0) {
@@ -614,11 +703,16 @@ export async function answerGuess(
     }
 
     // If lies aren't allowed or penalty limit reached, dishonest responses are detected as lies
-    if (!room.settings.allowLies || (room.penalties[responderId] ?? 0) >= MAX_PENALTIES) {
+    if (
+      !room.settings.allowLies ||
+      (room.penalties[responderId] ?? 0) >= MAX_PENALTIES
+    ) {
       if (lieDetected) {
         // Dishonest response when not allowed - this is a penalty
         room.penalties[responderId] = (room.penalties[responderId] ?? 0) + 1
-        room.message = `Lie detected against ${room.profiles[responderId]?.username ?? 'player'}`
+        room.message = `Lie detected against ${
+          room.profiles[responderId]?.username ?? 'player'
+        }`
         if ((room.penalties[responderId] ?? 0) >= MAX_PENALTIES) {
           room.status = 'finished'
           room.winnerId = guesserId
@@ -638,7 +732,9 @@ export async function answerGuess(
     } else if (lieDetected) {
       // Lies are allowed and player hasn't maxed out - apply penalty for this lie
       room.penalties[responderId] = (room.penalties[responderId] ?? 0) + 1
-      room.message = `Lie detected against ${room.profiles[responderId]?.username ?? 'player'}`
+      room.message = `Lie detected against ${
+        room.profiles[responderId]?.username ?? 'player'
+      }`
       if ((room.penalties[responderId] ?? 0) >= MAX_PENALTIES) {
         room.status = 'finished'
         room.winnerId = guesserId
@@ -667,7 +763,7 @@ export async function answerGuess(
       actualCows: actual.cows,
       lieDetected,
       turnNumber: pending.turnNumber,
-      at: Date.now(),
+      at: Date.now()
     }
 
     room.guessHistory[recordId] = record
@@ -678,7 +774,9 @@ export async function answerGuess(
       room.status = 'finished'
       room.winnerId = guesserId
       room.loserId = responderId
-      room.message = `Code cracked by ${room.profiles[guesserId]?.username ?? 'player'}! Correct guess detected.`
+      room.message = `Code cracked by ${
+        room.profiles[guesserId]?.username ?? 'player'
+      }! Correct guess detected.`
       delete room.turnDeadlineAt
       delete room.turnActorPlayerId
       return room
@@ -691,13 +789,13 @@ export async function answerGuess(
   })
 }
 
-export async function getRoom(roomId: string): Promise<RoomData | null> {
+export async function getRoom (roomId: string): Promise<RoomData | null> {
   const snapshot = await get(roomRef(roomId))
   if (!snapshot.exists()) return null
   return { id: roomId, ...(snapshot.val() as Omit<RoomData, 'id'>) }
 }
 
-export function buildInviteLink(roomId: string): string {
+export function buildInviteLink (roomId: string): string {
   const basePath = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')
   const url = new URL(window.location.origin)
   url.pathname = `${basePath}/rooms`.replace('//', '/')
@@ -705,19 +803,27 @@ export function buildInviteLink(roomId: string): string {
   return url.toString()
 }
 
-export async function copyInviteLink(roomId: string): Promise<void> {
+export async function copyInviteLink (roomId: string): Promise<void> {
   const link = buildInviteLink(roomId)
   await navigator.clipboard.writeText(link)
 }
 
-export async function verifyPassword(roomId: string, password: string): Promise<boolean> {
+export async function verifyPassword (
+  roomId: string,
+  password: string
+): Promise<boolean> {
   const room = await getRoom(roomId)
   if (!room) return false
   const hash = password ? await sha256(password) : undefined
   return (room.settings.passwordHash ?? '') === (hash ?? '')
 }
 
-export async function lockSecret(roomId: string, userId: string, secret: string, settings: RoomSettings): Promise<void> {
+export async function lockSecret (
+  roomId: string,
+  userId: string,
+  secret: string,
+  settings: RoomSettings
+): Promise<void> {
   const normalizedSecret = await validateCodeForRoom(secret, settings, 'secret')
 
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
@@ -737,14 +843,18 @@ export async function lockSecret(roomId: string, userId: string, secret: string,
       room.rpsChoices = {}
       room.rpsRound = Math.max(1, room.rpsRound ?? 1)
       room.rpsDeadlineAt = Date.now() + RPS_ROUND_MS
-      room.message = 'All codes locked. Choose Rock, Paper, Scissors to decide who starts.'
+      room.message =
+        'All codes locked. Choose Rock, Paper, Scissors to decide who starts.'
     }
 
     return room
   })
 }
 
-export async function unlockSecret(roomId: string, userId: string): Promise<void> {
+export async function unlockSecret (
+  roomId: string,
+  userId: string
+): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'secrets') return room
 
@@ -755,7 +865,11 @@ export async function unlockSecret(roomId: string, userId: string): Promise<void
   })
 }
 
-export async function updateGuessTypingStatus(roomId: string, userId: string, isTyping: boolean): Promise<void> {
+export async function updateGuessTypingStatus (
+  roomId: string,
+  userId: string,
+  isTyping: boolean
+): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'playing') return room
     if (!room.profiles[userId]) return room
@@ -774,7 +888,7 @@ export async function updateGuessTypingStatus(roomId: string, userId: string, is
   })
 }
 
-export async function finalizeTurnTimeout(roomId: string): Promise<void> {
+export async function finalizeTurnTimeout (roomId: string): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'playing' || !room.guestId) return room
     if (room.pausedByDisconnect?.playerId) return room
@@ -782,9 +896,12 @@ export async function finalizeTurnTimeout(roomId: string): Promise<void> {
     if (Date.now() < room.turnDeadlineAt) return room
     if (!getTurnDurationMs(room)) return room
 
-    const actorId = room.turnActorPlayerId
-      ?? (room.pendingGuess
-        ? (room.pendingGuess.fromPlayerId === room.hostId ? room.guestId : room.hostId)
+    const actorId =
+      room.turnActorPlayerId ??
+      (room.pendingGuess
+        ? room.pendingGuess.fromPlayerId === room.hostId
+          ? room.guestId
+          : room.hostId
         : room.currentTurnPlayerId)
 
     if (!actorId) return room
@@ -820,7 +937,7 @@ export async function finalizeTurnTimeout(roomId: string): Promise<void> {
         actualCows: actual.cows,
         lieDetected: false,
         turnNumber: pending.turnNumber,
-        at: Date.now(),
+        at: Date.now()
       }
 
       delete room.pendingGuess
@@ -829,7 +946,9 @@ export async function finalizeTurnTimeout(roomId: string): Promise<void> {
         room.status = 'finished'
         room.winnerId = guesserId
         room.loserId = responderId
-        room.message = `Code cracked by ${room.profiles[guesserId]?.username ?? 'player'}! Correct guess detected.`
+        room.message = `Code cracked by ${
+          room.profiles[guesserId]?.username ?? 'player'
+        }! Correct guess detected.`
         delete room.turnDeadlineAt
         delete room.turnActorPlayerId
         return room
@@ -837,22 +956,30 @@ export async function finalizeTurnTimeout(roomId: string): Promise<void> {
 
       room.currentTurnPlayerId = responderId
       setNextTurnDeadline(room, responderId)
-      room.message = `${room.profiles[responderId]?.username ?? 'Player'} ran out of time to answer. Turn switched.`
+      room.message = `${
+        room.profiles[responderId]?.username ?? 'Player'
+      } ran out of time to answer. Turn switched.`
       return room
     }
 
     const currentActor = room.currentTurnPlayerId
     if (!currentActor || currentActor !== actorId) return room
-    const nextPlayerId = currentActor === room.hostId ? room.guestId : room.hostId
+    const nextPlayerId =
+      currentActor === room.hostId ? room.guestId : room.hostId
     if (!nextPlayerId) return room
     room.currentTurnPlayerId = nextPlayerId
     setNextTurnDeadline(room, nextPlayerId)
-    room.message = `${room.profiles[currentActor]?.username ?? 'Player'} ran out of time. Turn passed.`
+    room.message = `${
+      room.profiles[currentActor]?.username ?? 'Player'
+    } ran out of time. Turn passed.`
     return room
   })
 }
 
-export async function votePlayAgain(roomId: string, userId: string): Promise<void> {
+export async function votePlayAgain (
+  roomId: string,
+  userId: string
+): Promise<void> {
   await runTransaction(roomRef(roomId), (room: RoomData | null) => {
     if (!room || room.status !== 'finished' || !room.guestId) return room
     if (!room.profiles[userId]) return room
@@ -864,7 +991,9 @@ export async function votePlayAgain(roomId: string, userId: string): Promise<voi
     const guestReady = Boolean(room.replayVotes[room.guestId])
 
     if (!hostReady || !guestReady) {
-      room.message = `${room.profiles[userId]?.username ?? 'Player'} wants to play again.`
+      room.message = `${
+        room.profiles[userId]?.username ?? 'Player'
+      } wants to play again.`
       return room
     }
 
@@ -888,7 +1017,7 @@ export async function votePlayAgain(roomId: string, userId: string): Promise<voi
     room.replayVotes = {}
     room.penalties = {
       [room.hostId]: 0,
-      [room.guestId]: 0,
+      [room.guestId]: 0
     }
     room.message = 'Rematch starting. Set your secret codes.'
     return room

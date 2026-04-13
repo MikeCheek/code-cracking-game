@@ -406,7 +406,6 @@ export function GameplayPage({
   const opponentTurnTimeLeftSeconds = activeTurnPlayerId && opponentProfile?.id === activeTurnPlayerId && turnTimeLeftMs !== null
     ? Math.ceil(turnTimeLeftMs / 1000)
     : null
-  const typingDots = '.'.repeat((Math.floor(uiNow / 320) % 3) + 1)
   const myTyping = Boolean(
     myProfile?.id
     && room.typingByPlayer?.[myProfile.id]
@@ -654,11 +653,17 @@ export function GameplayPage({
 
       <article className="grid grid-cols-2 gap-2">
         <div className={`rounded-2xl border p-3 ${isMyTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
-          <p className="text-sm font-semibold text-white">{myProfile?.avatar} {myProfile?.username ?? 'You'}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="min-w-0 truncate text-sm font-semibold text-white">{myProfile?.avatar} {myProfile?.username ?? 'You'}</p>
+            {myTyping && (
+              <span className="shrink-0 flex items-center gap-1" aria-label="Typing" title="Typing">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse-soft" />
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse-soft" style={{ animationDelay: '120ms' }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse-soft" style={{ animationDelay: '240ms' }} />
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-xs text-slate-300">{isMyTurnCard ? 'Current player' : 'Waiting'}</p>
-          {myTyping && (
-            <p className="mt-1 text-[11px] font-semibold text-cyan-200">Is typing{typingDots}</p>
-          )}
           {myTurnTimeLeftSeconds !== null && room.settings.maxTurnSeconds && (
             <>
               <p className="mt-1 text-[11px] font-semibold text-amber-200">Time left: {myTurnTimeLeftSeconds}s</p>
@@ -685,11 +690,17 @@ export function GameplayPage({
           )}
         </div>
         <div className={`rounded-2xl border p-3 ${isOpponentTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
-          <p className="text-sm font-semibold text-white">{opponentProfile?.avatar ?? '❔'} {opponentProfile?.username ?? 'Opponent'}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="min-w-0 truncate text-sm font-semibold text-white">{opponentProfile?.avatar ?? '❔'} {opponentProfile?.username ?? 'Opponent'}</p>
+            {opponentTyping && (
+              <span className="shrink-0 flex items-center gap-1" aria-label="Typing" title="Typing">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse-soft" />
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse-soft" style={{ animationDelay: '120ms' }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse-soft" style={{ animationDelay: '240ms' }} />
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-xs text-slate-300">{isOpponentTurnCard ? 'Current player' : 'Waiting'}</p>
-          {opponentTyping && (
-            <p className="mt-1 text-[11px] font-semibold text-cyan-200">Is typing{typingDots}</p>
-          )}
           {opponentTurnTimeLeftSeconds !== null && room.settings.maxTurnSeconds && (
             <>
               <p className="mt-1 text-[11px] font-semibold text-amber-200">Time left: {opponentTurnTimeLeftSeconds}s</p>
