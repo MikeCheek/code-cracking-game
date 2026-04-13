@@ -1149,7 +1149,7 @@ export function GameplayPage({
       )}
 
       {emotesEnabled && (
-        <div className="pointer-events-none fixed bottom-20 right-4 z-[985] h-0 w-0 sm:bottom-24 sm:right-6">
+        <div className="pointer-events-none fixed bottom-4 right-4 z-[985] h-0 w-0 sm:bottom-24 sm:right-6">
           {flyingEmotes.map((entry) => (
             <span
               key={entry.id}
