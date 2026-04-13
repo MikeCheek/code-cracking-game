@@ -36,6 +36,11 @@ export function RoomBadges({ entry, includePlayerCount = false }: RoomBadgesProp
       <span className="rounded-full border border-white/10 bg-slate-900/55 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
         {entry.isPrivate ? 'Private' : 'Public'}
       </span>
+      {entry.maxTurnSeconds ? (
+        <span className="rounded-full border border-white/10 bg-slate-900/55 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
+          {entry.maxTurnSeconds}s turns
+        </span>
+      ) : null}
       {includePlayerCount && <PlayerCountBadge hasGuest={entry.hasGuest} />}
     </div>
   )

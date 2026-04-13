@@ -10,6 +10,7 @@ type RoomsPageProps = {
   allowDuplicates: boolean
   isPrivate: boolean
   allowLies: boolean
+  maxTurnSeconds: number | ''
   newRoomName: string
   newRoomPassword: string
   joinPassword: string
@@ -19,6 +20,7 @@ type RoomsPageProps = {
   onAllowDuplicatesChange: (value: boolean) => void
   onIsPrivateChange: (value: boolean) => void
   onAllowLiesChange: (value: boolean) => void
+  onMaxTurnSecondsChange: (value: number | '') => void
   onGameModeChange: (value: GameMode) => void
   onWordLanguageChange: (value: WordLanguage) => void
   onNewRoomNameChange: (value: string) => void
@@ -38,6 +40,7 @@ export function RoomsPage({
   allowDuplicates,
   isPrivate,
   allowLies,
+  maxTurnSeconds,
   newRoomName,
   newRoomPassword,
   joinPassword,
@@ -47,6 +50,7 @@ export function RoomsPage({
   onAllowDuplicatesChange,
   onIsPrivateChange,
   onAllowLiesChange,
+  onMaxTurnSecondsChange,
   onGameModeChange,
   onWordLanguageChange,
   onNewRoomNameChange,
@@ -345,6 +349,28 @@ export function RoomsPage({
                 <label className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">
                   <input type="checkbox" checked={allowLies} onChange={(event) => onAllowLiesChange(event.target.checked)} />
                   Allow lies (up to 3)
+                </label>
+
+                <label className="block text-sm font-semibold text-slate-100">
+                  Max time per turn (seconds, optional)
+                  <input
+                    type="number"
+                    min={5}
+                    max={180}
+                    step={1}
+                    value={maxTurnSeconds}
+                    onChange={(event) => {
+                      const nextValue = event.target.value
+                      if (!nextValue.trim()) {
+                        onMaxTurnSecondsChange('')
+                        return
+                      }
+                      const numeric = Math.max(5, Math.min(180, Number(nextValue)))
+                      onMaxTurnSecondsChange(Number.isFinite(numeric) ? Math.round(numeric) : '')
+                    }}
+                    placeholder="No limit"
+                    className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-fuchsia-300/60"
+                  />
                 </label>
               </div>
             )}

@@ -19,6 +19,24 @@ const roomsRef = ref(db, 'rooms')
 const RPS_ROUND_MS = 5000
 const RPS_CHOICES: RpsChoice[] = ['rock', 'paper', 'scissors']
 
+function getTurnDurationMs(room: RoomData): number | null {
+  const seconds = room.settings.maxTurnSeconds
+  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return null
+  return Math.round(seconds * 1000)
+}
+
+function setNextTurnDeadline(room: RoomData, actorId: string): void {
+  const durationMs = getTurnDurationMs(room)
+  if (!durationMs) {
+    delete room.turnDeadlineAt
+    delete room.turnActorPlayerId
+    return
+  }
+
+  room.turnActorPlayerId = actorId
+  room.turnDeadlineAt = Date.now() + durationMs
+}
+
 function roomRef(roomId: string) {
   return child(roomsRef, roomId)
 }
@@ -48,14 +66,16 @@ function resolveRpsRound(room: RoomData): RoomData {
 
   if (winner === 0) {
     room.rpsRound += 1
+    room.rpsDeadlineAt = Date.now() + RPS_ROUND_MS
     room.message = 'RPS tie! Play again.'
     return room
   }
 
   room.starterPlayerId = winner === 1 ? room.hostId : room.guestId
   room.currentTurnPlayerId = room.starterPlayerId
-  room.status = 'secrets'
-  room.message = 'RPS finished. Set your secret codes.'
+  room.status = 'playing'
+  setNextTurnDeadline(room, room.currentTurnPlayerId)
+  room.message = 'RPS finished. Game started.'
   return room
 }
 
@@ -164,7 +184,7 @@ export async function joinRoom(roomId: string, user: UserProfile, password: stri
 
     if (!room.guestId && !isHostRejoin) {
       room.guestId = user.id
-      room.status = 'rps'
+      room.status = 'secrets'
     }
 
     room.profiles[user.id] = {
@@ -177,7 +197,7 @@ export async function joinRoom(roomId: string, user: UserProfile, password: stri
       delete room.pausedByDisconnect
       room.message = `${user.username} rejoined. Match resumed.`
     } else {
-      room.message = `${user.username} joined the room`
+      room.message = `${user.username} joined the room. Both players can lock their secrets.`
     }
 
     return room
@@ -206,7 +226,7 @@ export async function joinOwnRoomAsGuest(roomId: string, hostUserId: string, gue
 
     if (!room.guestId) {
       room.guestId = guestProfile.id
-      room.status = 'rps'
+      room.status = 'secrets'
     }
 
     room.profiles[guestProfile.id] = {
@@ -215,7 +235,7 @@ export async function joinOwnRoomAsGuest(roomId: string, hostUserId: string, gue
     }
 
     room.penalties[guestProfile.id] = room.penalties[guestProfile.id] ?? 0
-    room.message = `${guestProfile.username} joined in same-phone mode`
+    room.message = `${guestProfile.username} joined in same-phone mode. Both players can lock their secrets.`
 
     return room
   })
@@ -286,6 +306,7 @@ export function subscribeLobby(callback: (rooms: LobbyRoomSummary[]) => void): U
         hostName: room.profiles[room.hostId]?.username ?? 'Host',
         codeLength: room.settings.codeLength,
         allowDuplicates: room.settings.allowDuplicates,
+        maxTurnSeconds: room.settings.maxTurnSeconds,
         hasGuest: Boolean(room.guestId),
         createdAt: room.createdAt,
       }))
@@ -456,10 +477,7 @@ export async function chooseRps(roomId: string, userId: string, choice: RpsChoic
     if (room.pausedByDisconnect?.playerId) return room
 
     const now = Date.now()
-    if (!room.rpsDeadlineAt) {
-      room.rpsDeadlineAt = now + RPS_ROUND_MS
-      room.message = 'RPS countdown started. You can change your pick until time is up.'
-    }
+    if (!room.rpsDeadlineAt) room.rpsDeadlineAt = now + RPS_ROUND_MS
     if (now > room.rpsDeadlineAt) {
       return resolveRpsRound(room)
     }
@@ -516,8 +534,11 @@ export async function submitSecret(roomId: string, userId: string, secret: strin
     const hasGuest = Boolean(room.secrets[room.guestId])
 
     if (hasHost && hasGuest) {
-      room.status = 'playing'
-      room.message = 'All secrets locked. Game started.'
+      room.status = 'rps'
+      room.rpsChoices = {}
+      room.rpsRound = Math.max(1, room.rpsRound ?? 1)
+      room.rpsDeadlineAt = Date.now() + RPS_ROUND_MS
+      room.message = 'All secrets locked. Choose Rock, Paper, Scissors to decide who starts.'
     }
 
     return room
@@ -539,6 +560,18 @@ export async function submitGuess(roomId: string, userId: string, guess: string,
       guess: normalizedGuess,
       turnNumber,
       at: Date.now(),
+    }
+
+    if (room.typingByPlayer?.[userId]) {
+      delete room.typingByPlayer[userId]
+      if (Object.keys(room.typingByPlayer).length === 0) {
+        delete room.typingByPlayer
+      }
+    }
+
+    const responderId = userId === room.hostId ? room.guestId : room.hostId
+    if (responderId) {
+      setNextTurnDeadline(room, responderId)
     }
 
     room.message = 'Guess submitted. Waiting for response.'
@@ -573,6 +606,13 @@ export async function answerGuess(
     // A lie is detected when the response doesn't match actual values
     const lieDetected = actual.bulls !== claimedBulls || actual.cows !== claimedCows
     
+    if (room.typingByPlayer?.[responderId]) {
+      delete room.typingByPlayer[responderId]
+      if (Object.keys(room.typingByPlayer).length === 0) {
+        delete room.typingByPlayer
+      }
+    }
+
     // If lies aren't allowed or penalty limit reached, dishonest responses are detected as lies
     if (!room.settings.allowLies || (room.penalties[responderId] ?? 0) >= MAX_PENALTIES) {
       if (lieDetected) {
@@ -584,12 +624,15 @@ export async function answerGuess(
           room.winnerId = guesserId
           room.loserId = responderId
           room.message = 'Game over by penalties'
+          delete room.turnDeadlineAt
+          delete room.turnActorPlayerId
           delete room.pendingGuess
           return room
         }
         // Continue turn if penalty not yet maxed
         delete room.pendingGuess
         room.currentTurnPlayerId = responderId
+        setNextTurnDeadline(room, responderId)
         return room
       }
     } else if (lieDetected) {
@@ -601,6 +644,8 @@ export async function answerGuess(
         room.winnerId = guesserId
         room.loserId = responderId
         room.message = 'Game over by penalties'
+        delete room.turnDeadlineAt
+        delete room.turnActorPlayerId
         delete room.pendingGuess
         return room
       }
@@ -634,10 +679,13 @@ export async function answerGuess(
       room.winnerId = guesserId
       room.loserId = responderId
       room.message = `Code cracked by ${room.profiles[guesserId]?.username ?? 'player'}! Correct guess detected.`
+      delete room.turnDeadlineAt
+      delete room.turnActorPlayerId
       return room
     }
 
     room.currentTurnPlayerId = responderId
+    setNextTurnDeadline(room, responderId)
     room.message = lieDetected ? room.message : 'Turn switched'
     return room
   })
@@ -685,8 +733,11 @@ export async function lockSecret(roomId: string, userId: string, secret: string,
     const guestLocked = Boolean(room.lockedSecrets[room.guestId])
 
     if (hostLocked && guestLocked) {
-      room.status = 'playing'
-      room.message = 'All codes locked. Game started!'
+      room.status = 'rps'
+      room.rpsChoices = {}
+      room.rpsRound = Math.max(1, room.rpsRound ?? 1)
+      room.rpsDeadlineAt = Date.now() + RPS_ROUND_MS
+      room.message = 'All codes locked. Choose Rock, Paper, Scissors to decide who starts.'
     }
 
     return room
@@ -700,6 +751,103 @@ export async function unlockSecret(roomId: string, userId: string): Promise<void
     room.lockedSecrets = room.lockedSecrets ?? {}
     room.lockedSecrets[userId] = false
 
+    return room
+  })
+}
+
+export async function updateGuessTypingStatus(roomId: string, userId: string, isTyping: boolean): Promise<void> {
+  await runTransaction(roomRef(roomId), (room: RoomData | null) => {
+    if (!room || room.status !== 'playing') return room
+    if (!room.profiles[userId]) return room
+
+    room.typingByPlayer = room.typingByPlayer ?? {}
+    if (isTyping) {
+      room.typingByPlayer[userId] = Date.now()
+    } else {
+      delete room.typingByPlayer[userId]
+      if (Object.keys(room.typingByPlayer).length === 0) {
+        delete room.typingByPlayer
+      }
+    }
+
+    return room
+  })
+}
+
+export async function finalizeTurnTimeout(roomId: string): Promise<void> {
+  await runTransaction(roomRef(roomId), (room: RoomData | null) => {
+    if (!room || room.status !== 'playing' || !room.guestId) return room
+    if (room.pausedByDisconnect?.playerId) return room
+    if (!room.turnDeadlineAt) return room
+    if (Date.now() < room.turnDeadlineAt) return room
+    if (!getTurnDurationMs(room)) return room
+
+    const actorId = room.turnActorPlayerId
+      ?? (room.pendingGuess
+        ? (room.pendingGuess.fromPlayerId === room.hostId ? room.guestId : room.hostId)
+        : room.currentTurnPlayerId)
+
+    if (!actorId) return room
+
+    if (room.typingByPlayer?.[actorId]) {
+      delete room.typingByPlayer[actorId]
+      if (Object.keys(room.typingByPlayer).length === 0) {
+        delete room.typingByPlayer
+      }
+    }
+
+    if (room.pendingGuess) {
+      const pending = room.pendingGuess
+      const guesserId = pending.fromPlayerId
+      const responderId = guesserId === room.hostId ? room.guestId : room.hostId
+      if (!responderId || responderId !== actorId) return room
+      const responderSecret = room.secrets?.[responderId]
+      if (!responderSecret) return room
+
+      const actual = evaluateGuess(responderSecret, pending.guess)
+      const recordId = push(child(roomRef(roomId), 'guessHistory')).key
+      if (!recordId) return room
+
+      room.guessHistory = room.guessHistory ?? {}
+      room.guessHistory[recordId] = {
+        id: recordId,
+        fromPlayerId: guesserId,
+        toPlayerId: responderId,
+        guess: pending.guess,
+        claimedBulls: actual.bulls,
+        claimedCows: actual.cows,
+        actualBulls: actual.bulls,
+        actualCows: actual.cows,
+        lieDetected: false,
+        turnNumber: pending.turnNumber,
+        at: Date.now(),
+      }
+
+      delete room.pendingGuess
+
+      if (actual.bulls === room.settings.codeLength && actual.cows === 0) {
+        room.status = 'finished'
+        room.winnerId = guesserId
+        room.loserId = responderId
+        room.message = `Code cracked by ${room.profiles[guesserId]?.username ?? 'player'}! Correct guess detected.`
+        delete room.turnDeadlineAt
+        delete room.turnActorPlayerId
+        return room
+      }
+
+      room.currentTurnPlayerId = responderId
+      setNextTurnDeadline(room, responderId)
+      room.message = `${room.profiles[responderId]?.username ?? 'Player'} ran out of time to answer. Turn switched.`
+      return room
+    }
+
+    const currentActor = room.currentTurnPlayerId
+    if (!currentActor || currentActor !== actorId) return room
+    const nextPlayerId = currentActor === room.hostId ? room.guestId : room.hostId
+    if (!nextPlayerId) return room
+    room.currentTurnPlayerId = nextPlayerId
+    setNextTurnDeadline(room, nextPlayerId)
+    room.message = `${room.profiles[currentActor]?.username ?? 'Player'} ran out of time. Turn passed.`
     return room
   })
 }
@@ -721,17 +869,20 @@ export async function votePlayAgain(roomId: string, userId: string): Promise<voi
     }
 
     // Reset room state for a fresh rematch while keeping same players and settings.
-    room.status = 'rps'
+    room.status = 'secrets'
     room.rpsChoices = {}
     room.rpsRound = 1
     delete room.rpsDeadlineAt
     delete room.lastRpsResult
     delete room.starterPlayerId
     delete room.currentTurnPlayerId
+    delete room.turnDeadlineAt
+    delete room.turnActorPlayerId
     room.secrets = {}
     room.lockedSecrets = {}
     delete room.pendingGuess
     room.guessHistory = {}
+    room.typingByPlayer = {}
     delete room.winnerId
     delete room.loserId
     room.replayVotes = {}
@@ -739,7 +890,7 @@ export async function votePlayAgain(roomId: string, userId: string): Promise<voi
       [room.hostId]: 0,
       [room.guestId]: 0,
     }
-    room.message = 'Rematch starting. Pick RPS.'
+    room.message = 'Rematch starting. Set your secret codes.'
     return room
   })
 }

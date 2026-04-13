@@ -30,6 +30,7 @@ export interface RoomSettings {
   allowDuplicates: boolean
   isPrivate: boolean
   allowLies: boolean
+  maxTurnSeconds?: number
   passwordHash?: string
 }
 
@@ -77,10 +78,13 @@ export interface RoomData {
   }
   starterPlayerId?: string
   currentTurnPlayerId?: string
+  turnDeadlineAt?: number
+  turnActorPlayerId?: string
   secrets?: Record<string, string>
   lockedSecrets?: Record<string, boolean>
   pendingGuess?: PendingGuess
   guessHistory?: Record<string, GuessRecord>
+  typingByPlayer?: Record<string, number>
   quickEmotes?: Record<string, { value: string; at: number }>
   winnerId?: string
   loserId?: string
@@ -103,6 +107,7 @@ export interface LobbyRoomSummary {
   hostName: string
   codeLength: number
   allowDuplicates: boolean
+  maxTurnSeconds?: number
   hasGuest: boolean
   createdAt: number
 }

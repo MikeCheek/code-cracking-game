@@ -39,6 +39,7 @@ export function WaitingRoomPage({
       ? `${WORD_LANGUAGE_LABELS[getRoomWordLanguage(room)]} words`
       : room.settings.allowDuplicates ? 'Duplicates on' : 'Unique digits',
     room.settings.allowLies ? 'Lies enabled' : 'No lies',
+    ...(room.settings.maxTurnSeconds ? [`${room.settings.maxTurnSeconds}s turn timer`] : []),
   ]
 
   return (

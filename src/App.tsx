@@ -9,6 +9,7 @@ import {
   chooseRps,
   createRoom,
   deleteRoom,
+  finalizeTurnTimeout,
   joinRoom,
   joinRoomAsSpectator,
   joinOwnRoomAsGuest,
@@ -23,6 +24,7 @@ import {
   submitGuess,
   subscribeLobby,
   subscribeRoom,
+  updateGuessTypingStatus,
 } from './lib/realtime'
 import { getTelegramUserProfile, isTelegramWebApp, prepareTelegramWebApp } from './lib/platform'
 import {
@@ -102,6 +104,7 @@ function App() {
   const [selectedWordLanguage, setSelectedWordLanguage] = useState<WordLanguage>(DEFAULT_WORD_LANGUAGE)
   const [isPrivate, setIsPrivate] = useState(false)
   const [allowLies, setAllowLies] = useState(true)
+  const [maxTurnSeconds, setMaxTurnSeconds] = useState<number | ''>('')
   const [newRoomName, setNewRoomName] = useState(() => generateRoomName(initialStoredUser?.username))
   const [newRoomPassword, setNewRoomPassword] = useState('')
   const [joinPassword, setJoinPassword] = useState('')
@@ -205,6 +208,7 @@ function App() {
     hotseatRevealedPlayerId !== hotseatPendingPlayerId,
   )
   const activeRpsRoomId = room?.status === 'rps' ? room.id : null
+  const activeTurnTimerRoomId = room?.status === 'playing' && room.settings.maxTurnSeconds ? room.id : null
 
   useEffect(() => {
     configureAudio(audioSettings)
@@ -374,6 +378,18 @@ function App() {
     const interval = setInterval(tryFinalize, 300)
     return () => clearInterval(interval)
   }, [activeRpsRoomId])
+
+  useEffect(() => {
+    if (!activeTurnTimerRoomId) return
+
+    const tryFinalizeTimeout = () => {
+      void finalizeTurnTimeout(activeTurnTimerRoomId)
+    }
+
+    tryFinalizeTimeout()
+    const interval = setInterval(tryFinalizeTimeout, 350)
+    return () => clearInterval(interval)
+  }, [activeTurnTimerRoomId])
 
   useEffect(() => {
     if (!routeRoomId || !room || room.id !== routeRoomId) return
@@ -569,6 +585,7 @@ function App() {
           allowDuplicates,
           isPrivate,
           allowLies,
+          ...(typeof maxTurnSeconds === 'number' && maxTurnSeconds > 0 ? { maxTurnSeconds } : {}),
           gameMode: selectedGameMode,
           ...(selectedGameMode === 'words' ? { wordLanguage: selectedWordLanguage } : {}),
         },
@@ -610,6 +627,7 @@ function App() {
       setAllowLies(true)
       setSelectedGameMode(DEFAULT_GAME_MODE)
       setSelectedWordLanguage(DEFAULT_WORD_LANGUAGE)
+      setMaxTurnSeconds('')
       setNewRoomPassword('')
       setNewRoomName(generateRoomName(user.username))
       navigate(`/room/${nextRoomId}/waiting`)
@@ -809,6 +827,7 @@ function App() {
     }
 
     try {
+      void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => {})
       await submitGuess(room.id, currentPlayerId, guessInput.trim(), room.settings)
       setGuessInput('')
       if (isHotseatMode) {
@@ -1029,14 +1048,26 @@ function App() {
 
   const onGuessInputChange = (value: string) => {
     if (!room) return
+    let normalizedGuess = ''
+
     if (getRoomGameMode(room) === 'words') {
-      setGuessInput(normalizeWordInput(value, room.settings.codeLength))
-      return
+      normalizedGuess = normalizeWordInput(value, room.settings.codeLength)
+    } else {
+      normalizedGuess = value.replace(/\D/g, '').slice(0, room.settings.codeLength)
     }
 
-    const digitsOnly = value.replace(/\D/g, '').slice(0, room.settings.codeLength)
-    setGuessInput(digitsOnly)
+    setGuessInput(normalizedGuess)
+
+    if (room.status === 'playing' && currentPlayerId && myTurn && !room.pendingGuess) {
+      void updateGuessTypingStatus(room.id, currentPlayerId, normalizedGuess.length > 0).catch(() => {})
+    }
   }
+
+  useEffect(() => {
+    if (!room || !currentPlayerId) return
+    if (room.status === 'playing' && myTurn && !room.pendingGuess) return
+    void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => {})
+  }, [currentPlayerId, myTurn, room?.id, room?.pendingGuess?.at, room?.status])
 
   const onLogout = async () => {
     setIsAuthBusy(true)
@@ -1056,6 +1087,7 @@ function App() {
     setClaimedCows(0)
     setSelectedGameMode(DEFAULT_GAME_MODE)
     setSelectedWordLanguage(DEFAULT_WORD_LANGUAGE)
+    setMaxTurnSeconds('')
     setShowSettingsModal(false)
     setShowUserMenu(false)
     setHotseatGuestProfile(null)
@@ -1275,6 +1307,7 @@ function App() {
                   allowDuplicates={allowDuplicates}
                   isPrivate={isPrivate}
                   allowLies={allowLies}
+                  maxTurnSeconds={maxTurnSeconds}
                   newRoomName={newRoomName}
                   newRoomPassword={newRoomPassword}
                   joinPassword={joinPassword}
@@ -1289,6 +1322,7 @@ function App() {
                     }
                   }}
                   onAllowLiesChange={setAllowLies}
+                  onMaxTurnSecondsChange={setMaxTurnSeconds}
                   onGameModeChange={setSelectedGameMode}
                   onWordLanguageChange={setSelectedWordLanguage}
                   onNewRoomNameChange={setNewRoomName}

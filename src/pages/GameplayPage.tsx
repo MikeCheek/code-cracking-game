@@ -176,7 +176,7 @@ export function GameplayPage({
   const [flyingEmotes, setFlyingEmotes] = useState<FlyingEmote[]>([])
   const [emotesEnabled, setEmotesEnabled] = useState(true)
   const [emoteScale, setEmoteScale] = useState(1)
-  const [rpsNow, setRpsNow] = useState(0)
+  const [uiNow, setUiNow] = useState(0)
   const gameMenuRef = useRef<HTMLDivElement | null>(null)
   const latestQuickEmoteAtRef = useRef<Record<string, number>>({})
   const emoteMainHoldTimeoutRef = useRef<number | null>(null)
@@ -202,12 +202,12 @@ export function GameplayPage({
   }, [])
 
   useEffect(() => {
-    if (room.status !== 'rps' || !room.rpsDeadlineAt) return
-    const tick = () => setRpsNow(Date.now())
+    if (room.status !== 'rps' && room.status !== 'playing') return
+    const tick = () => setUiNow(Date.now())
     tick()
-    const timer = setInterval(tick, 100)
+    const timer = setInterval(tick, 180)
     return () => clearInterval(timer)
-  }, [room.rpsDeadlineAt, room.status])
+  }, [room.status])
 
   useEffect(() => {
     latestQuickEmoteAtRef.current = {}
@@ -264,23 +264,23 @@ export function GameplayPage({
 
   const createRandomFlight = (emoteId: string, value: string): FlyingEmote => {
     const isSmallViewport = typeof window !== 'undefined' ? window.innerWidth < 640 : true
-    const baseLeftInset = isSmallViewport ? 16 : 24
+    const baseRightInset = isSmallViewport ? 16 : 24
     const baseBottomInset = isSmallViewport ? 80 : 96
-    const anchorX = baseLeftInset + 28
+    const anchorX = baseRightInset + 28
     const anchorY = baseBottomInset + 28
-    const maxX = Math.max(60, window.innerWidth - anchorX - 20)
+    const maxLeft = Math.max(60, window.innerWidth - anchorX - 20)
     const maxUp = Math.max(100, window.innerHeight - anchorY - 20)
 
     const template = EMOTE_PATH_TEMPLATES[Math.floor(Math.random() * EMOTE_PATH_TEMPLATES.length)]
     const scale = 0.85 + Math.random() * 0.4
     const jitter = 20
 
-    const clampX = (valueX: number) => Math.max(-anchorX + 8, Math.min(maxX, valueX))
+    const clampX = (valueX: number) => Math.max(-maxLeft, Math.min(anchorX - 8, valueX))
     const clampY = (valueY: number) => Math.max(-maxUp, Math.min(-14, valueY))
 
     const toPoint = (index: number) => {
       const base = template.points[index]
-      const x = clampX(base.x * scale + (Math.random() * 2 - 1) * jitter)
+      const x = clampX(-base.x * scale + (Math.random() * 2 - 1) * jitter)
       const y = clampY(base.y * scale + (Math.random() * 2 - 1) * jitter)
       return { x, y }
     }
@@ -296,7 +296,7 @@ export function GameplayPage({
     return {
       id: emoteId,
       value,
-      originX: 28,
+      originX: -28,
       originY: 28,
       x1: p1.x,
       y1: p1.y,
@@ -387,9 +387,36 @@ export function GameplayPage({
     () => (room.quickEmotes ? Object.entries(room.quickEmotes) : []),
     [room.quickEmotes],
   )
-  const rpsTimeLeftMs = room.status === 'rps' && room.rpsDeadlineAt ? Math.max(0, room.rpsDeadlineAt - rpsNow) : 5000
+  const rpsTimeLeftMs = room.status === 'rps' && room.rpsDeadlineAt ? Math.max(0, room.rpsDeadlineAt - uiNow) : 5000
   const rpsTimeLeftSeconds = Math.ceil(rpsTimeLeftMs / 1000)
   const rpsProgress = Math.max(0, Math.min(1, rpsTimeLeftMs / 5000))
+  const activeTurnPlayerId = room.turnActorPlayerId
+    ?? (room.pendingGuess
+      ? (room.pendingGuess.fromPlayerId === room.hostId ? room.guestId : room.hostId)
+      : room.currentTurnPlayerId)
+  const turnTimeLeftMs = room.status === 'playing' && room.turnDeadlineAt
+    ? Math.max(0, room.turnDeadlineAt - uiNow)
+    : null
+  const turnProgress = room.settings.maxTurnSeconds && turnTimeLeftMs !== null
+    ? Math.max(0, Math.min(1, turnTimeLeftMs / (room.settings.maxTurnSeconds * 1000)))
+    : null
+  const myTurnTimeLeftSeconds = activeTurnPlayerId && myProfile?.id === activeTurnPlayerId && turnTimeLeftMs !== null
+    ? Math.ceil(turnTimeLeftMs / 1000)
+    : null
+  const opponentTurnTimeLeftSeconds = activeTurnPlayerId && opponentProfile?.id === activeTurnPlayerId && turnTimeLeftMs !== null
+    ? Math.ceil(turnTimeLeftMs / 1000)
+    : null
+  const typingDots = '.'.repeat((Math.floor(uiNow / 320) % 3) + 1)
+  const myTyping = Boolean(
+    myProfile?.id
+    && room.typingByPlayer?.[myProfile.id]
+    && uiNow - (room.typingByPlayer?.[myProfile.id] ?? 0) < 2600,
+  )
+  const opponentTyping = Boolean(
+    opponentProfile?.id
+    && room.typingByPlayer?.[opponentProfile.id]
+    && uiNow - (room.typingByPlayer?.[opponentProfile.id] ?? 0) < 2600,
+  )
 
   useEffect(() => {
     if (quickEmoteEntries.length === 0) return
@@ -473,7 +500,7 @@ export function GameplayPage({
         </article>
 
         {emotesEnabled && (
-          <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
+          <div className="pointer-events-none fixed bottom-20 right-4 z-[985] h-0 w-0 sm:bottom-24 sm:right-6">
             {flyingEmotes.map((entry) => (
               <span
                 key={entry.id}
@@ -507,7 +534,7 @@ export function GameplayPage({
           </div>
         )}
 
-        <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
+        <div className="fixed bottom-20 right-4 z-[990] flex flex-col items-end gap-2 sm:bottom-24 sm:right-6">
           {showEmotePicker && (
             <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 p-3 space-y-3">
               <div className="space-y-2">
@@ -629,6 +656,20 @@ export function GameplayPage({
         <div className={`rounded-2xl border p-3 ${isMyTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
           <p className="text-sm font-semibold text-white">{myProfile?.avatar} {myProfile?.username ?? 'You'}</p>
           <p className="mt-1 text-xs text-slate-300">{isMyTurnCard ? 'Current player' : 'Waiting'}</p>
+          {myTyping && (
+            <p className="mt-1 text-[11px] font-semibold text-cyan-200">Is typing{typingDots}</p>
+          )}
+          {myTurnTimeLeftSeconds !== null && room.settings.maxTurnSeconds && (
+            <>
+              <p className="mt-1 text-[11px] font-semibold text-amber-200">Time left: {myTurnTimeLeftSeconds}s</p>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-white/5">
+                <div
+                  className="h-full bg-linear-to-r from-emerald-300 via-cyan-300 to-fuchsia-300 transition-[width] duration-150"
+                  style={{ width: `${(turnProgress ?? 0) * 100}%` }}
+                />
+              </div>
+            </>
+          )}
           <p className="mt-1 text-xs text-rose-200">Lies: {room.penalties[myProfile?.id ?? ''] ?? 0} / 3</p>
           {mySecret && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -646,6 +687,20 @@ export function GameplayPage({
         <div className={`rounded-2xl border p-3 ${isOpponentTurnCard ? 'border-emerald-300/45 bg-emerald-300/15' : 'border-white/10 bg-white/5'}`}>
           <p className="text-sm font-semibold text-white">{opponentProfile?.avatar ?? '❔'} {opponentProfile?.username ?? 'Opponent'}</p>
           <p className="mt-1 text-xs text-slate-300">{isOpponentTurnCard ? 'Current player' : 'Waiting'}</p>
+          {opponentTyping && (
+            <p className="mt-1 text-[11px] font-semibold text-cyan-200">Is typing{typingDots}</p>
+          )}
+          {opponentTurnTimeLeftSeconds !== null && room.settings.maxTurnSeconds && (
+            <>
+              <p className="mt-1 text-[11px] font-semibold text-amber-200">Time left: {opponentTurnTimeLeftSeconds}s</p>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-white/5">
+                <div
+                  className="h-full bg-linear-to-r from-emerald-300 via-cyan-300 to-fuchsia-300 transition-[width] duration-150"
+                  style={{ width: `${(turnProgress ?? 0) * 100}%` }}
+                />
+              </div>
+            </>
+          )}
           <p className="mt-1 text-xs text-rose-200">Lies: {room.penalties[opponentProfile?.id ?? ''] ?? 0} / 3</p>
         </div>
       </article>
@@ -1077,7 +1132,7 @@ export function GameplayPage({
       )}
 
       {emotesEnabled && (
-        <div className="pointer-events-none fixed bottom-20 left-4 z-[985] h-0 w-0 sm:bottom-24 sm:left-6">
+        <div className="pointer-events-none fixed bottom-20 right-4 z-[985] h-0 w-0 sm:bottom-24 sm:right-6">
           {flyingEmotes.map((entry) => (
             <span
               key={entry.id}
@@ -1111,7 +1166,7 @@ export function GameplayPage({
         </div>
       )}
 
-      <div className="fixed bottom-20 left-4 z-[990] flex flex-col items-start gap-2 sm:bottom-24 sm:left-6">
+      <div className="fixed bottom-20 right-4 z-[990] flex flex-col items-end gap-2 sm:bottom-24 sm:right-6">
         {showEmotePicker && (
           <div className="glass-panel-strong w-[18.5rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 p-3 space-y-3">
             <div className="space-y-2">
