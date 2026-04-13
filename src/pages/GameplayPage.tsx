@@ -323,6 +323,11 @@ export function GameplayPage({
     return `${current}${symbol}`
   }
 
+  const isDuplicateDigitBlocked = (current: string, digit: string) => {
+    if (room.settings.allowDuplicates) return false
+    return current.includes(digit)
+  }
+
   const numberOptions = Array.from({ length: maxCodeLength + 1 }, (_, index) => index)
   const pendingGuessDigits = room.pendingGuess?.guess.split('') ?? []
 
@@ -409,12 +414,12 @@ export function GameplayPage({
   const myTyping = Boolean(
     myProfile?.id
     && room.typingByPlayer?.[myProfile.id]
-    && uiNow - (room.typingByPlayer?.[myProfile.id] ?? 0) < 2600,
+    && uiNow - (room.typingByPlayer?.[myProfile.id] ?? 0) < 3200,
   )
   const opponentTyping = Boolean(
     opponentProfile?.id
     && room.typingByPlayer?.[opponentProfile.id]
-    && uiNow - (room.typingByPlayer?.[opponentProfile.id] ?? 0) < 2600,
+    && uiNow - (room.typingByPlayer?.[opponentProfile.id] ?? 0) < 3200,
   )
 
   useEffect(() => {
@@ -792,7 +797,7 @@ export function GameplayPage({
                         key={`secret-digit-${digit}`}
                         type="button"
                         onClick={() => onSecretInputChange(appendSymbol(secretInput, digit) ?? secretInput)}
-                        disabled={secretLocked}
+                        disabled={secretLocked || isDuplicateDigitBlocked(secretInput, digit)}
                         className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         {digit}
@@ -912,7 +917,8 @@ export function GameplayPage({
                             key={`guess-digit-${digit}`}
                             type="button"
                             onClick={() => onGuessInputChange(appendSymbol(guessInput, digit) ?? guessInput)}
-                            className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+                            disabled={isDuplicateDigitBlocked(guessInput, digit)}
+                            className="rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
                           >
                             {digit}
                           </button>
