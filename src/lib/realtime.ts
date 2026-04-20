@@ -49,7 +49,7 @@ function setNextTurnDeadline (room: RoomData, actorId: string): void {
   room.turnDeadlineAt = Date.now() + durationMs
 }
 
-function roomRef (roomId: string) {
+export function roomRef (roomId: string) {
   return child(roomsRef, roomId)
 }
 

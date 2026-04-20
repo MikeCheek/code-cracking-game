@@ -3,8 +3,8 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { GoogleAuthProvider, onAuthStateChanged, signInAnonymously, signInWithPopup, signOut } from 'firebase/auth'
 import toast, { Toaster, ToastBar } from 'react-hot-toast'
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom'
-import { DEFAULT_CODE_LENGTH, DEFAULT_GAME_MODE, DEFAULT_WORD_LANGUAGE, MAX_WORD_CODE_LENGTH } from './constants'
-answerGuess,
+import {
+  answerGuess,
   chooseRps,
   createRoom,
   deleteRoom,
@@ -24,7 +24,6 @@ answerGuess,
   subscribeLobby,
   subscribeRoom,
   updateGuessTypingStatus,
-  runTransaction,
   roomRef,
 } from './lib/realtime'
 import { getTelegramUserProfile, isTelegramWebApp, prepareTelegramWebApp } from './lib/platform'
@@ -38,6 +37,13 @@ import { configureAudio, ensureAudioReady, playAlert, playClick, playLie, playSu
 import { clearUser, hasAudioConsent, loadAudioSettings, loadUser, saveAudioSettings, saveUser, setAudioConsent } from './lib/storage'
 import { generateRandomAvatar, generateRandomUsername } from './utils/profile'
 import { GameplayPage } from './pages/GameplayPage'
+import { runTransaction } from 'firebase/database'
+import {
+  DEFAULT_CODE_LENGTH,
+  DEFAULT_GAME_MODE,
+  DEFAULT_WORD_LANGUAGE,
+  MAX_WORD_CODE_LENGTH,
+} from './constants'
 import { HistoryPage } from './pages/HistoryPage'
 import { LandingPage } from './pages/LandingPage'
 import { RoomsPage } from './pages/RoomsPage'
