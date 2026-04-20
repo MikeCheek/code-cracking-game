@@ -4,8 +4,7 @@ import { GoogleAuthProvider, onAuthStateChanged, signInAnonymously, signInWithPo
 import toast, { Toaster, ToastBar } from 'react-hot-toast'
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { DEFAULT_CODE_LENGTH, DEFAULT_GAME_MODE, DEFAULT_WORD_LANGUAGE, MAX_WORD_CODE_LENGTH } from './constants'
-import {
-  answerGuess,
+answerGuess,
   chooseRps,
   createRoom,
   deleteRoom,
@@ -25,6 +24,8 @@ import {
   subscribeLobby,
   subscribeRoom,
   updateGuessTypingStatus,
+  runTransaction,
+  roomRef,
 } from './lib/realtime'
 import { getTelegramUserProfile, isTelegramWebApp, prepareTelegramWebApp } from './lib/platform'
 import {
@@ -818,27 +819,66 @@ function App() {
     }
   }
 
-  const onSubmitGuess = async () => {
-    if (!room || !currentPlayerId) return
+  // Helper to check if a guess is a possible win (all strikes)
+  function isWinningGuess(guess: string, secret: string) {
+    if (!guess || !secret) return false;
+    return guess.length === secret.length && guess === secret;
+  }
 
-    const shouldValidateWord = getRoomGameMode(room) === 'words'
+  // Function to finish the game and set the winner
+  async function finishGameEarly(winnerId: string, loserId: string, message: string) {
+    if (!room) return;
+    // Update the room in the backend (simulate what answerGuess does)
+    await runTransaction(roomRef(room.id), (roomData: RoomData | null) => {
+      if (!roomData) return roomData;
+      roomData.status = 'finished';
+      roomData.winnerId = winnerId;
+      roomData.loserId = loserId;
+      roomData.message = message;
+      delete roomData.turnDeadlineAt;
+      delete roomData.turnActorPlayerId;
+      delete roomData.pendingGuess;
+      return roomData;
+    });
+  }
+
+  const onSubmitGuess = async () => {
+    if (!room || !currentPlayerId) return;
+
+    const shouldValidateWord = getRoomGameMode(room) === 'words';
     if (shouldValidateWord) {
-      setIsCheckingWordGuess(true)
+      setIsCheckingWordGuess(true);
     }
 
     try {
-      void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => { })
-      await submitGuess(room.id, currentPlayerId, guessInput.trim(), room.settings)
-      setGuessInput('')
-      if (isHotseatMode) {
-        setHotseatRevealedPlayerId(null)
+      void updateGuessTypingStatus(room.id, currentPlayerId, false).catch(() => { });
+      await submitGuess(room.id, currentPlayerId, guessInput.trim(), room.settings);
+
+      // Check for instant win (all strikes, no balls)
+      const opponentId = currentPlayerId === room.hostId ? room.guestId : room.hostId;
+      const opponentSecret = room.secrets?.[opponentId ?? ''];
+      if (
+        opponentSecret &&
+        isWinningGuess(guessInput.trim(), opponentSecret)
+      ) {
+        await finishGameEarly(
+          currentPlayerId,
+          opponentId!,
+          `${room.profiles[currentPlayerId]?.username ?? 'Player'} cracked the code!`
+        );
+        toast.success('You cracked the code!');
       }
-      playClick()
+
+      setGuessInput('');
+      if (isHotseatMode) {
+        setHotseatRevealedPlayerId(null);
+      }
+      playClick();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not submit guess')
+      toast.error(err instanceof Error ? err.message : 'Could not submit guess');
     } finally {
       if (shouldValidateWord) {
-        setIsCheckingWordGuess(false)
+        setIsCheckingWordGuess(false);
       }
     }
   }
@@ -1691,8 +1731,8 @@ function App() {
                           type="button"
                           onClick={() => setUiTheme(item.id)}
                           className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${audioSettings.uiTheme === item.id
-                              ? 'border-fuchsia-300/40 bg-fuchsia-300/20 text-white'
-                              : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                            ? 'border-fuchsia-300/40 bg-fuchsia-300/20 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
                             }`}
                         >
                           {item.label}

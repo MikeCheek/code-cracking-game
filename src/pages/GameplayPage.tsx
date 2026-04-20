@@ -1063,13 +1063,18 @@ export function GameplayPage({
           ) : (
             <div className="space-y-2">
               {visibleGuesses.map((item) => {
-                // const kinds = getDigitKinds(
-                //   item.guess,
-                //   item.actualBulls,
-                //   item.actualCows,
-                //   item.toPlayerId === myProfile?.id ? mySecret : undefined,
-                // )
-
+                let kinds: DigitKind[] = [];
+                // Only show highlighting in words mode
+                if (isWordGame) {
+                  // Show highlighting only if the guess was against us and we know our secret
+                  const secret = item.toPlayerId === myProfile?.id ? mySecret : undefined;
+                  kinds = getDigitKinds(
+                    item.guess,
+                    item.actualBulls,
+                    item.actualCows,
+                    secret
+                  );
+                }
                 return (
                   <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100">
                     <div className="flex items-center justify-between gap-2">
@@ -1078,7 +1083,7 @@ export function GameplayPage({
                         {item.guess.split('').map((digit, index) => (
                           <span
                             key={`${item.id}-digit-${digit}-${index}`}
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border font-mono text-xs font-bold ${getDigitChipClassName('miss')}`}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border font-mono text-xs font-bold ${isWordGame ? getDigitChipClassName(kinds[index] ?? 'miss') : getDigitChipClassName('miss')}`}
                           >
                             {digit}
                           </span>
