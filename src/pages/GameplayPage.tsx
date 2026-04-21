@@ -10,6 +10,7 @@ const RPS_ITEMS: Array<{ value: RpsChoice; icon: string; label: string }> = [
 ]
 
 const QUICK_EMOTES = [
+  '💓',
   '❤️',
   '😍',
   '🧐',
@@ -1064,16 +1065,21 @@ export function GameplayPage({
             <div className="space-y-2">
               {visibleGuesses.map((item) => {
                 let kinds: DigitKind[] = [];
-                // Only show highlighting in words mode
                 if (isWordGame) {
-                  // Show highlighting only if the guess was against us and we know our secret
-                  const secret = item.toPlayerId === myProfile?.id ? mySecret : undefined;
-                  kinds = getDigitKinds(
-                    item.guess,
-                    item.actualBulls,
-                    item.actualCows,
-                    secret
-                  );
+                  const responderSecret = room.secrets?.[item.toPlayerId];
+                  if (
+                    responderSecret &&
+                    item.guess.length === responderSecret.length
+                  ) {
+                    kinds = getDigitKinds(
+                      item.guess,
+                      item.actualBulls,
+                      item.actualCows,
+                      responderSecret
+                    );
+                  } else {
+                    kinds = Array(item.guess.length).fill('miss');
+                  }
                 }
                 return (
                   <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100">
