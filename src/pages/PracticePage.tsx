@@ -24,7 +24,7 @@ export function PracticePage({ onBackToWelcome, onStartLobby }: PracticePageProp
   const [secret, setSecret] = useState(() => createSecret(codeLength))
   const [guess, setGuess] = useState('')
   const [turns, setTurns] = useState<PracticeTurn[]>([])
-  const [message, setMessage] = useState('Try to crack the hidden 4-digit code.')
+  const [message, setMessage] = useState('Try to guess the hidden 4-digit number.')
   const [revealed, setRevealed] = useState(false)
 
   const solved = useMemo(() => turns.some((turn) => turn.bulls === codeLength), [turns])

@@ -32,7 +32,7 @@ export function ResultsPage({
     balls: winnerTurns.reduce((sum, entry) => sum + entry.actualCows, 0),
   }
   const inviteLink = buildInviteLink(room.id)
-  const shareText = `${winner ? `${winner.username} won` : 'Match finished'} in ${stats.turns} turns on Code Cracking.`
+  const shareText = `${winner ? `${winner.username} won` : 'Match finished'} in ${stats.turns} turns on Number Baseball.`
 
   const copyResultShare = async () => {
     await navigator.clipboard.writeText(`${shareText}\n${inviteLink}`)

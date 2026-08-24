@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Code Cracking",
-  "short_name": "Code Cracking",
-  "description": "Realtime multiplayer digit code cracking game.",
+  "name": "Number Baseball",
+  "short_name": "Number Baseball",
+  "description": "Realtime multiplayer number baseball guessing game.",
   "lang": "en",
   "categories": ["games", "entertainment"],
   "theme_color": "#fb923c",
@@ -13,13 +13,13 @@
   "start_url": "/welcome",
   "icons": [
     {
-      "src": "/codecracking.png",
+      "src": "/numberbaseball.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/codecracking.png",
+      "src": "/numberbaseball.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "maskable"

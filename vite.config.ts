@@ -54,9 +54,9 @@ export default defineConfig({
       },
       manifest: {
         id: '/',
-        name: 'Code Cracking',
-        short_name: 'Code Cracking',
-        description: 'Realtime multiplayer digit code cracking game.',
+        name: 'Number Baseball',
+        short_name: 'Number Baseball',
+        description: 'Realtime multiplayer number baseball guessing game.',
         lang: 'en',
         categories: ['games', 'entertainment'],
         theme_color: '#fb923c',

@@ -16,4 +16,4 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemaps
-Sitemap: https://codecracking.vercel.app/sitemap.xml
+Sitemap: https://numberbaseball.vercel.app/sitemap.xml

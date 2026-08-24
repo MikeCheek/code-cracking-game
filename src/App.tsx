@@ -870,9 +870,9 @@ function App() {
         await finishGameEarly(
           currentPlayerId,
           opponentId!,
-          `${room.profiles[currentPlayerId]?.username ?? 'Player'} cracked the code!`
+          `${room.profiles[currentPlayerId]?.username ?? 'Player'} hit a home run!`
         );
-        toast.success('You cracked the code!');
+        toast.success('You hit a home run!');
       }
 
       setGuessInput('');
@@ -1153,8 +1153,8 @@ function App() {
     <div className={`theme-${audioSettings.uiTheme} min-h-dvh bg-orchid-pattern px-3 py-3 text-slate-100 app-noise sm:px-4 sm:py-4`}>
       <div className="fixed top-4 left-4 z-[1300] sm:top-5 sm:left-5">
         <img
-          src="/codecracking.png"
-          alt="Code Cracking logo"
+          src="/numberbaseball.png"
+          alt="Number Baseball logo"
           className="h-12 w-12 rounded-xl border border-white/20 object-cover shadow-[0_10px_28px_rgba(0,0,0,0.45)] sm:h-14 sm:w-14"
         />
       </div>
@@ -1683,7 +1683,7 @@ function App() {
             <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4 text-sm text-slate-200">
               <div className="space-y-2">
                 <h4 className="text-base font-bold text-white">Rules</h4>
-                <p>Set your secret code first, then alternate turns to crack your opponent's code before they crack yours.</p>
+                <p>Set your secret number first, then alternate turns to guess your opponent's number before they guess yours.</p>
                 <p><strong>Strikes:</strong> Correct symbol in the correct position.</p>
                 <p><strong>Balls:</strong> Correct symbol but placed in the wrong position.</p>
                 <p><strong>Winning:</strong> You win instantly when your guess matches every position in the opponent's secret.</p>

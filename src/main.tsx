@@ -12,7 +12,7 @@ initializeFirebaseAppCheck()
 const updateSW = registerSW({
   immediate: true,
   onOfflineReady() {
-    toast.success('Code Cracking is ready for offline play.')
+    toast.success('Number Baseball is ready for offline play.')
   },
   onNeedRefresh() {
     toast(

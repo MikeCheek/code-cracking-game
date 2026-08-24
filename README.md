@@ -1,6 +1,6 @@
-# Code Cracking
+# Number Baseball
 
-Realtime multiplayer code-cracking game built with:
+Realtime multiplayer number baseball guessing game built with:
 - React + Vite + TypeScript
 - Tailwind CSS
 - Firebase Realtime Database (Spark free tier)

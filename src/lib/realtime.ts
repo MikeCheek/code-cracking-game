@@ -774,7 +774,7 @@ export async function answerGuess (
       room.status = 'finished'
       room.winnerId = guesserId
       room.loserId = responderId
-      room.message = `Code cracked by ${
+      room.message = `Home run by ${
         room.profiles[guesserId]?.username ?? 'player'
       }! Correct guess detected.`
       delete room.turnDeadlineAt
@@ -946,7 +946,7 @@ export async function finalizeTurnTimeout (roomId: string): Promise<void> {
         room.status = 'finished'
         room.winnerId = guesserId
         room.loserId = responderId
-        room.message = `Code cracked by ${
+        room.message = `Home run by ${
           room.profiles[guesserId]?.username ?? 'player'
         }! Correct guess detected.`
         delete room.turnDeadlineAt

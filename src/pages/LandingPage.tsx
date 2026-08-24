@@ -76,13 +76,13 @@ export function LandingPage({ onStartPlaying, onTryDemo, onSetUpProfile }: Landi
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <img
-              src="/codecracking.png"
-              alt="Code Cracking logo"
+              src="/numberbaseball.png"
+              alt="Number Baseball logo"
               className="h-10 w-10 rounded-2xl border border-white/15 object-cover"
             />
             <div>
-              <p className="text-sm font-black text-white">Code Cracking</p>
-              <p className="text-xs text-slate-400">Realtime code deduction game</p>
+              <p className="text-sm font-black text-white">Number Baseball</p>
+              <p className="text-xs text-slate-400">Realtime number deduction game</p>
             </div>
           </div>
 
@@ -105,10 +105,10 @@ export function LandingPage({ onStartPlaying, onTryDemo, onSetUpProfile }: Landi
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-cyan-200/80">Play the game</p>
             <h1 className="mt-3 max-w-2xl text-4xl font-black leading-[0.92] text-white sm:text-6xl">
-              Crack secret codes. See the logic. Bring friends into the match.
+              Guess the secret number. See the logic. Bring friends into the match.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-              Code Cracking is a social deduction game built for quick invite-driven sessions. It explains itself as you play: numbers or words, one opponent, clear feedback, and a strong replay loop.
+              Number Baseball is a social deduction game built for quick invite-driven sessions. It explains itself as you play: numbers or words, one opponent, clear feedback, and a strong replay loop.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -237,7 +237,7 @@ export function LandingPage({ onStartPlaying, onTryDemo, onSetUpProfile }: Landi
       <article id="core" className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="glass-panel rounded-3xl p-4 sm:p-6">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200/80">What makes it work</p>
-          <h2 className="mt-2 text-2xl font-black text-white">The code-cracking core is simple and readable.</h2>
+          <h2 className="mt-2 text-2xl font-black text-white">The number-guessing core is simple and readable.</h2>
           <div className="mt-4 space-y-3">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-sm font-bold text-white">Strikes and balls do the teaching</p>

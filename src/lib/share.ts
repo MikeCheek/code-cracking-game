@@ -5,7 +5,7 @@ export type ShareChannel = 'native' | 'telegram' | 'whatsapp' | 'clipboard'
 
 function inviteText(roomName?: string): string {
   const roomPart = roomName ? ` for "${roomName}"` : ''
-  return `Join my Code Cracking room${roomPart}.`
+  return `Join my Number Baseball room${roomPart}.`
 }
 
 function buildSharePayload(roomId: string, roomName?: string) {
@@ -27,7 +27,7 @@ export async function shareInviteSmart(roomId: string, roomName?: string): Promi
   if (navigator.share) {
     try {
       await navigator.share({
-        title: 'Code Cracking Invite',
+        title: 'Number Baseball Invite',
         text,
         url: link,
       })
